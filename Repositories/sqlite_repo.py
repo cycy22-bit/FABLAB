@@ -71,6 +71,48 @@ class SQLiteMaterielRepository(IMaterielRepository):
         conn.close()
 
         return True
+    def update_stock(self, materiel_id: int, nouvelle_quantite: int) -> bool:
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        UPDATE materiels
+        SET quantite_stock = ?
+        WHERE id_materiel = ?
+        """, (nouvelle_quantite, materiel_id))
+
+        conn.commit()
+        conn.close()
+
+        return True
+    def get_by_id(self, materiel_id: int) -> MaterielDTO | None:
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        SELECT id_materiel,
+               nom_materiel,
+               categorie,
+               quantite_stock,
+               stock_minimum
+        FROM materiels
+        WHERE id_materiel = ?
+        """, (materiel_id,))
+
+        row = cursor.fetchone()
+
+        conn.close()
+
+        if row is None:
+            return None
+
+        return MaterielDTO(
+            id_materiel=row[0],
+            nom_materiel=row[1],
+            categorie=row[2],
+            quantite_stock=row[3],
+            stock_minimum=row[4]
+        )
     
 class SQLiteEmpruntRepository(IEmpruntRepository):
 
