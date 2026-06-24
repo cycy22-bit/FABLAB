@@ -127,8 +127,9 @@ class SQLiteEmpruntRepository(IEmpruntRepository):
         cursor = conn.cursor()
 
         cursor.execute("""
-        SELECT id_emprunt, id_etudiant, id_materiel, quantite,
-               date_emprunt, date_retour_prevue, statut_emprunt
+        SELECT id_emprunt, id_etudiant, id_materiel, quantite_empruntee,
+               date_emprunt, date_retour_prevue, date_retour_effective,
+               statut_emprunt, etat_retour
         FROM emprunts
         """)
 
@@ -140,13 +141,16 @@ class SQLiteEmpruntRepository(IEmpruntRepository):
                 id_emprunt=row[0],
                 id_etudiant=row[1],
                 id_materiel=row[2],
-                quantite=row[3],
+                quantite_empruntee=row[3],
                 date_emprunt=date.fromisoformat(row[4]),
                 date_retour_prevue=date.fromisoformat(row[5]),
-                statut_emprunt=row[6]
+                date_retour_effective=date.fromisoformat(row[6]) if row[6] else None,
+                statut_emprunt=row[7],
+                etat_retour=row[8]
             )
             for row in rows
         ]
+
     def save(self, emprunt: EmpruntDTO) -> bool:
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -155,25 +159,30 @@ class SQLiteEmpruntRepository(IEmpruntRepository):
         INSERT INTO emprunts (
             id_etudiant,
             id_materiel,
-            quantite,
+            quantite_empruntee,
             date_emprunt,
             date_retour_prevue,
-            statut_emprunt
+            date_retour_effective,
+            statut_emprunt,
+            etat_retour
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             emprunt.id_etudiant,
             emprunt.id_materiel,
-            emprunt.quantite,
+            emprunt.quantite_empruntee,
             emprunt.date_emprunt.isoformat(),
             emprunt.date_retour_prevue.isoformat(),
-            emprunt.statut_emprunt
+            emprunt.date_retour_effective.isoformat() if emprunt.date_retour_effective else None,
+            emprunt.statut_emprunt,
+            emprunt.etat_retour
         ))
 
         conn.commit()
         conn.close()
 
         return True
+
     def update_status(self, emprunt_id: int, statut: str) -> bool:
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -188,6 +197,7 @@ class SQLiteEmpruntRepository(IEmpruntRepository):
         conn.close()
 
         return True
+
     def delete(self, emprunt_id: int) -> bool:
         conn = self.get_connection()
         cursor = conn.cursor()

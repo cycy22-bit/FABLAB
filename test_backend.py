@@ -1,10 +1,19 @@
-from Models import MaterielDTO
-from Services import MaterielService
-from Repositories import SQLiteMaterielRepository
+from datetime import date, timedelta
+
+from Models import MaterielDTO, EmpruntDTO
+from Services import MaterielService, EmpruntService
+from Repositories import SQLiteMaterielRepository, SQLiteEmpruntRepository
 
 
-repository = SQLiteMaterielRepository(database_path="database.db")
-service = MaterielService(repository=repository)
+materiel_repository = SQLiteMaterielRepository(database_path="database.db")
+emprunt_repository = SQLiteEmpruntRepository(database_path="database.db")
+
+materiel_service = MaterielService(repository=materiel_repository)
+
+emprunt_service = EmpruntService(
+    emprunt_repository=emprunt_repository,
+    materiel_repository=materiel_repository
+)
 
 materiel = MaterielDTO(
     id_materiel=None,
@@ -14,43 +23,34 @@ materiel = MaterielDTO(
     stock_minimum=2
 )
 
-resultat = service.ajouter_materiel(materiel)
+resultat_materiel = materiel_service.ajouter_materiel(materiel)
 
-print("Ajout réussi :", resultat)
+print("Ajout matériel réussi :", resultat_materiel)
 
-materiels = service.afficher_materiels()
-
-for item in materiels:
+print("\nListe des matériels :")
+for item in materiel_service.afficher_materiels():
     print(item)
-
-from datetime import date
-
-from Models import EmpruntDTO
-from Services import EmpruntService
-from Repositories import SQLiteEmpruntRepository
-
-
-emprunt_repository = SQLiteEmpruntRepository(
-    database_path="database.db"
-)
-
-emprunt_service = EmpruntService(
-    repository=emprunt_repository
-)
 
 emprunt = EmpruntDTO(
     id_emprunt=None,
     id_etudiant=1,
     id_materiel=1,
-    quantite=2,
+    quantite_empruntee=2,
     date_emprunt=date.today(),
-    date_retour_prevue=date.today(),
-    statut_emprunt="en cours"
+    date_retour_prevue=date.today() + timedelta(days=7),
+    date_retour_effective=None,
+    statut_emprunt="en cours",
+    etat_retour="non retourné"
 )
 
-resultat = emprunt_service.enregistrer_emprunt(emprunt)
+resultat_emprunt = emprunt_service.enregistrer_emprunt(emprunt)
 
-print("Emprunt enregistré :", resultat)
+print("\nEmprunt enregistré :", resultat_emprunt)
 
+print("\nListe des emprunts :")
 for item in emprunt_service.afficher_emprunts():
     print(item)
+
+print("\nStock après emprunt :")
+materiel_apres_emprunt = materiel_repository.get_by_id(1)
+print(materiel_apres_emprunt)

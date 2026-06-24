@@ -7,3 +7,5 @@ from .fournisseur import FournisseurDTO
 from .commande import CommandeDTO
 from .alerte import AlerteDTO
 from .mouvement_stock import MouvementStockDTO
+from .gestionnaire import GestionnaireDTO
+from .ligne_commande import LigneCommandeDTO
