@@ -1,5 +1,5 @@
 from .materiel import MaterielDTO
-from .utilisateur import UtilisateurDTO
+from .utilisateur import EtudiantDTO
 from .machine import MachineDTO
 from .reservation import ReservationDTO
 from .emprunt import EmpruntDTO
@@ -7,3 +7,5 @@ from .fournisseur import FournisseurDTO
 from .commande import CommandeDTO
 from .alerte import AlerteDTO
 from .mouvement_stock import MouvementStockDTO
+from .gestionnaire import GestionnaireDTO
+from .ligne_commande import LigneCommandeDTO
