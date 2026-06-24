@@ -36,19 +36,21 @@ class DatabaseInitializer:
         """)
 
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS emprunts (
+            CREATE TABLE IF NOT EXISTS emprunts (
             id_emprunt INTEGER PRIMARY KEY AUTOINCREMENT,
             id_etudiant INTEGER NOT NULL,
             id_materiel INTEGER NOT NULL,
-            quantite INTEGER NOT NULL,
+            quantite_empruntee INTEGER NOT NULL,
             date_emprunt TEXT NOT NULL,
             date_retour_prevue TEXT NOT NULL,
+            date_retour_effective TEXT,
             statut_emprunt TEXT NOT NULL DEFAULT 'en cours',
+            etat_retour TEXT NOT NULL DEFAULT 'non retourné',
 
             FOREIGN KEY (id_etudiant) REFERENCES etudiants(id_etudiant),
             FOREIGN KEY (id_materiel) REFERENCES materiels(id_materiel)
         )
-        """)
+""")
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS machines (
