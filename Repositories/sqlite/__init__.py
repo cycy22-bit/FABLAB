@@ -1,7 +1,4 @@
-from .sqlite_repo import SQLiteMaterielRepository, SQLiteEmpruntRepository 
-from .sqlite_repo import SQLiteRepository
-
-from .sqlite import (
+from .sqlite_repositories import (
     SQLiteEtudiantRepository,
     SQLiteGestionnaireRepository,
     SQLiteMachineRepository,
