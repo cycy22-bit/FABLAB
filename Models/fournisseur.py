@@ -8,4 +8,6 @@ class FournisseurDTO:
     adresse: str
     telephone: str
     email: str
-    site_web: str | None
+    site_web: str
+    delai_livraison_moyen: str
+    conditions_paiement: str

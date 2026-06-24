@@ -1,5 +1,5 @@
 from .materiel import MaterielDTO
-from .utilisateur import UtilisateurDTO
+from .utilisateur import EtudiantDTO
 from .machine import MachineDTO
 from .reservation import ReservationDTO
 from .emprunt import EmpruntDTO
