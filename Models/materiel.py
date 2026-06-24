@@ -3,8 +3,8 @@ from dataclasses import dataclass
 
 @dataclass
 class MaterielDTO:
-    id: int | None
-    label: str
-    category: str
-    stock_quantity: int
-    minimum_stock: int
+    id_materiel: int | None
+    nom_materiel: str
+    categorie: str
+    quantite_stock: int
+    stock_minimum: int
