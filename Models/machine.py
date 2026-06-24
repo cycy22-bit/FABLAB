@@ -6,5 +6,7 @@ class MachineDTO:
     id_machine: int | None
     nom_machine: str
     type_machine: str
-    statut_machine: str
+    description: str
+    caracteristique_tech: str
+    statut: str
     emplacement: str
