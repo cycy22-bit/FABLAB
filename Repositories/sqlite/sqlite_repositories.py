@@ -10,7 +10,7 @@ from Models.reservation import ReservationDTO
 from Models.emprunt import EmpruntDTO
 from Models.fournisseur import FournisseurDTO
 from Models.commande import CommandeDTO
-from Models.lignecommande import LigneCommandeDTO
+from Models.ligne_commande import LigneCommandeDTO
 from Models.mouvement_stock import MouvementStockDTO
 from Models.alerte import AlerteDTO
 
