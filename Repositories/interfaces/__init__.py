@@ -6,6 +6,6 @@ from .reservation_repository import IReservationRepository
 from .emprunt_repository import IEmpruntRepository
 from .fournisseur_repository import IFournisseurRepository
 from .commande_repository import ICommandeRepository
-from .ligne_commande_repository import ILigneCommandeRepository
+from .lignecommande_repository import ILigneCommandeRepository
 from .mouvementstock_repository import IMouvementStockRepository
 from .alerte_repository import IAlerteRepository

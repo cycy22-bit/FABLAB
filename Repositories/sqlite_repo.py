@@ -1,37 +1,61 @@
 import sqlite3
-from sqlite3 import Row
+from pathlib import Path
+from typing import Any
 
 
 class SQLiteRepository:
+    """
+    Classe mère de tous les repositories SQLite.
+    Elle gère uniquement la connexion à la base de données.
+    """
 
-    def __init__(self, database_path: str):
-        self.database_path = database_path
+    def __init__(self, db_path: str = "fablab.db"):
+        self.db_path = db_path
+        self._ensure_database_file()
 
-    def get_connection(self):
-        conn = sqlite3.connect(self.database_path)
-        conn.row_factory = Row
+    def _ensure_database_file(self) -> None:
+        Path(self.db_path).touch(exist_ok=True)
+
+    def get_connection(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
         return conn
 
-    def fetch_all(self, query: str, params: tuple = ()):
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        conn.close()
-        return rows
+    def execute_query(self, query: str, params: tuple[Any, ...] = ()) -> bool:
+        try:
+            with self.get_connection() as conn:
+                conn.execute(query, params)
+                conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Erreur SQLite : {e}")
+            return False
 
-    def fetch_one(self, query: str, params: tuple = ()):
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        row = cursor.fetchone()
-        conn.close()
-        return row
+    def execute_insert(self, query: str, params: tuple[Any, ...] = ()) -> int | None:
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.execute(query, params)
+                conn.commit()
+                return cursor.lastrowid
+        except sqlite3.Error as e:
+            print(f"Erreur SQLite : {e}")
+            return None
 
-    def execute(self, query: str, params: tuple = ()) -> bool:
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        conn.commit()
-        conn.close()
-        return True
+    def fetch_all(self, query: str, params: tuple[Any, ...] = ()) -> list[sqlite3.Row]:
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.execute(query, params)
+                return cursor.fetchall()
+        except sqlite3.Error as e:
+            print(f"Erreur SQLite : {e}")
+            return []
+
+    def fetch_one(self, query: str, params: tuple[Any, ...] = ()) -> sqlite3.Row | None:
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.execute(query, params)
+                return cursor.fetchone()
+        except sqlite3.Error as e:
+            print(f"Erreur SQLite : {e}")
+            return None
