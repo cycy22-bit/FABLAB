@@ -1,4 +1,9 @@
+from pathlib import Path
+import sys
 from typing import Any
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+sys.path.append(str(ROOT_DIR))
 
 from Repositories.sqlite_repo import SQLiteRepository
 
@@ -13,7 +18,6 @@ from Models.commande import CommandeDTO
 from Models.ligne_commande import LigneCommandeDTO
 from Models.mouvement_stock import MouvementStockDTO
 from Models.alerte import AlerteDTO
-
 
 class BaseSQLiteRepository(SQLiteRepository):
     TABLE: str = ""
