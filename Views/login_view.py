@@ -14,7 +14,7 @@ class LoginView:
     def build(self) -> ft.Control:
         return ft.Container(
             expand=True,
-            alignment=ft.alignment.center,
+            alignment=ft.Alignment(0, 0),
             bgcolor="#F5F8FC",
             content=card(
                 ft.Column(

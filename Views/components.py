@@ -24,8 +24,14 @@ def subtitle_text(text: str) -> ft.Text:
 
 def primary_button(text: str, on_click=None, icon=None) -> ft.ElevatedButton:
     return ft.ElevatedButton(
-        text=text,
-        icon=icon,
+        content=ft.Row(
+            controls=[
+                ft.Icon(icon) if icon else ft.Container(),
+                ft.Text(text),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=8,
+        ),
         on_click=on_click,
         bgcolor=PRIMARY_COLOR,
         color="white",
@@ -35,8 +41,14 @@ def primary_button(text: str, on_click=None, icon=None) -> ft.ElevatedButton:
 
 def danger_button(text: str, on_click=None, icon=None) -> ft.ElevatedButton:
     return ft.ElevatedButton(
-        text=text,
-        icon=icon,
+        content=ft.Row(
+            controls=[
+                ft.Icon(icon) if icon else ft.Container(),
+                ft.Text(text),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=8,
+        ),
         on_click=on_click,
         bgcolor="#D32F2F",
         color="white",

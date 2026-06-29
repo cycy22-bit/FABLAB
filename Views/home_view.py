@@ -43,6 +43,7 @@ class MainScreen:
         self.content_area = ft.Container(expand=True, padding=25)
 
     def build(self) -> ft.Control:
+        print("ROLE REÇU DANS HOME_VIEW :", self.user)
         self.content_area.content = DashboardView(
             page=self.page,
             statistique_service=self.statistique_service,
@@ -61,6 +62,49 @@ class MainScreen:
         )
 
     def sidebar(self) -> ft.Container:
+        role = self.user.get("role", "").upper()
+
+        def menu_button(label, icon, action):
+            return ft.TextButton(
+                content=ft.Row(
+                    controls=[
+                        ft.Icon(icon, size=20),
+                        ft.Text(label),
+                    ],
+                    spacing=10,
+                ),
+                on_click=action,
+            )
+
+        menu_items = [
+            menu_button("Tableau de bord", ft.Icons.DASHBOARD, lambda e: self.show_dashboard()),
+        ]
+
+        if role == "GESTIONNAIRE":
+            menu_items += [
+                menu_button("Machines", ft.Icons.PRECISION_MANUFACTURING, lambda e: self.show_machines()),
+                menu_button("Réservations", ft.Icons.CALENDAR_MONTH, lambda e: self.show_reservations()),
+                menu_button("Inventaire / Stock", ft.Icons.INVENTORY, lambda e: self.show_stock()),
+                menu_button("Emprunts", ft.Icons.ASSIGNMENT, lambda e: self.show_emprunts()),
+                menu_button("Fournisseurs", ft.Icons.BUSINESS, lambda e: self.show_fournisseurs()),
+                menu_button("Commandes", ft.Icons.SHOPPING_CART, lambda e: self.show_commandes()),
+                menu_button("Historique", ft.Icons.HISTORY, lambda e: self.show_historique()),
+                menu_button("Alertes", ft.Icons.WARNING, lambda e: self.show_alertes()),
+            ]
+
+        elif role == "ETUDIANT":
+            menu_items += [
+                menu_button("Réservations", ft.Icons.CALENDAR_MONTH, lambda e: self.show_reservations()),
+                menu_button("Emprunts", ft.Icons.ASSIGNMENT, lambda e: self.show_emprunts()),
+                menu_button("Stock disponible", ft.Icons.INVENTORY, lambda e: self.show_stock()),
+                menu_button("Alertes / Messages", ft.Icons.WARNING, lambda e: self.show_alertes()),
+            ]
+
+        menu_items.append(ft.Container(expand=True))
+        menu_items.append(
+            menu_button("Déconnexion", ft.Icons.LOGOUT, lambda e: self.page.go("/login"))
+        )
+
         return ft.Container(
             width=260,
             bgcolor="white",
@@ -68,67 +112,13 @@ class MainScreen:
             content=ft.Column(
                 controls=[
                     ft.Text("SG-FabLab", size=24, weight=ft.FontWeight.BOLD, color=PRIMARY_COLOR),
-                    ft.Text("Système de gestion", size=12, color="#666666"),
+                    ft.Text(f"Connecté : {role}", size=12, color="#666666"),
                     ft.Divider(),
-
-                    ft.TextButton(
-                        text="Tableau de bord",
-                        icon=ft.Icons.DASHBOARD,
-                        on_click=lambda e: self.show_dashboard(),
-                    ),
-                    ft.TextButton(
-                        text="Machines",
-                        icon=ft.Icons.PRECISION_MANUFACTURING,
-                        on_click=lambda e: self.show_machines(),
-                    ),
-                    ft.TextButton(
-                        text="Réservations",
-                        icon=ft.Icons.CALENDAR_MONTH,
-                        on_click=lambda e: self.show_reservations(),
-                    ),
-                    ft.TextButton(
-                        text="Inventaire / Stock",
-                        icon=ft.Icons.INVENTORY,
-                        on_click=lambda e: self.show_stock(),
-                    ),
-                    ft.TextButton(
-                        text="Emprunts",
-                        icon=ft.Icons.ASSIGNMENT,
-                        on_click=lambda e: self.show_emprunts(),
-                    ),
-                    ft.TextButton(
-                        text="Fournisseurs",
-                        icon=ft.Icons.BUSINESS,
-                        on_click=lambda e: self.show_fournisseurs(),
-                    ),
-                    ft.TextButton(
-                        text="Commandes",
-                        icon=ft.Icons.SHOPPING_CART,
-                        on_click=lambda e: self.show_commandes(),
-                    ),
-                    ft.TextButton(
-                        text="Historique",
-                        icon=ft.Icons.HISTORY,
-                        on_click=lambda e: self.show_historique(),
-                    ),
-                    ft.TextButton(
-                        text="Alertes",
-                        icon=ft.Icons.WARNING,
-                        on_click=lambda e: self.show_alertes(),
-                    ),
-
-                    ft.Container(expand=True),
-
-                    ft.TextButton(
-                        text="Déconnexion",
-                        icon=ft.Icons.LOGOUT,
-                        on_click=lambda e: self.page.go("/login"),
-                    ),
+                    *menu_items,
                 ],
                 spacing=6,
             ),
         )
-
     def set_content(self, control: ft.Control):
         self.content_area.content = control
         self.page.update()
