@@ -43,7 +43,10 @@ class MainScreen:
         self.content_area = ft.Container(expand=True, padding=25)
 
     def build(self) -> ft.Control:
-        self.show_dashboard()
+        self.content_area.content = DashboardView(
+            page=self.page,
+            statistique_service=self.statistique_service,
+        ).build()
 
         return ft.Row(
             controls=[
