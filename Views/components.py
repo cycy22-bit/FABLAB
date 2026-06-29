@@ -1,8 +1,11 @@
 import flet as ft
+from pathlib import Path
 
 
 PRIMARY_COLOR = "#1E88E5"
+DARK_COLOR = "#0B1220"
 BG_COLOR = "#F5F8FC"
+WHITE = "#FFFFFF"
 
 
 def title_text(text: str) -> ft.Text:
@@ -34,7 +37,7 @@ def primary_button(text: str, on_click=None, icon=None) -> ft.ElevatedButton:
         ),
         on_click=on_click,
         bgcolor=PRIMARY_COLOR,
-        color="white",
+        color=WHITE,
         height=45,
     )
 
@@ -51,7 +54,7 @@ def danger_button(text: str, on_click=None, icon=None) -> ft.ElevatedButton:
         ),
         on_click=on_click,
         bgcolor="#D32F2F",
-        color="white",
+        color=WHITE,
         height=45,
     )
 
@@ -63,7 +66,7 @@ def input_field(label: str, password: bool = False) -> ft.TextField:
         can_reveal_password=password,
         border_radius=10,
         filled=True,
-        bgcolor="white",
+        bgcolor=WHITE,
     )
 
 
@@ -73,12 +76,39 @@ def card(content: ft.Control, width=None, height=None) -> ft.Container:
         width=width,
         height=height,
         padding=20,
-        bgcolor="white",
+        bgcolor=WHITE,
         border_radius=15,
         shadow=ft.BoxShadow(
             blur_radius=12,
             spread_radius=1,
             color="#DDDDDD",
+        ),
+    )
+
+
+def logo_ulc_icam(size: int = 42) -> ft.Control:
+    logo_path = Path("Assets/logo_ulc_icam.png")
+
+    if logo_path.exists():
+        return ft.Image(
+            src=str(logo_path),
+            width=size,
+            height=size,
+            fit=ft.ImageFit.CONTAIN,
+        )
+
+    return ft.Container(
+        width=size,
+        height=size,
+        border_radius=8,
+        bgcolor=PRIMARY_COLOR,
+        alignment=ft.alignment.center,
+        content=ft.Text(
+            "ULC\nICAM",
+            size=9,
+            color=WHITE,
+            weight=ft.FontWeight.BOLD,
+            text_align=ft.TextAlign.CENTER,
         ),
     )
 

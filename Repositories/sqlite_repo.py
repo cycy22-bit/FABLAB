@@ -1,17 +1,22 @@
 import sqlite3
+import logging
 from dataclasses import asdict, is_dataclass
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 
-class SQLiteRepository:
-    """
-    Classe mère de tous les repositories SQLite.
-    Elle gère uniquement la connexion, les requêtes SQL
-    et les opérations génériques CRUD.
-    """
+logging.basicConfig(
+    level=logging.ERROR,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
+
+class RepositoryError(Exception):
+    pass
+
+
+class SQLiteRepository:
     TABLE: str = ""
     PK: str = ""
     DTO_CLASS = None
@@ -41,10 +46,7 @@ class SQLiteRepository:
         else:
             data = dto.__dict__.copy()
 
-        return {
-            key: self._normalize_value(value)
-            for key, value in data.items()
-        }
+        return {key: self._normalize_value(value) for key, value in data.items()}
 
     def _to_dto(self, row: sqlite3.Row):
         if row is None:
@@ -57,7 +59,7 @@ class SQLiteRepository:
                 cursor = conn.execute(query, params)
                 return cursor.fetchall()
         except sqlite3.Error as e:
-            print(f"Erreur SQLite fetch_all : {e}")
+            logging.error(f"Erreur SQLite fetch_all : {e}")
             return []
 
     def fetch_one(self, query: str, params: tuple[Any, ...] = ()) -> sqlite3.Row | None:
@@ -66,7 +68,7 @@ class SQLiteRepository:
                 cursor = conn.execute(query, params)
                 return cursor.fetchone()
         except sqlite3.Error as e:
-            print(f"Erreur SQLite fetch_one : {e}")
+            logging.error(f"Erreur SQLite fetch_one : {e}")
             return None
 
     def execute(self, query: str, params: tuple[Any, ...] = ()) -> bool:
@@ -76,7 +78,7 @@ class SQLiteRepository:
                 conn.commit()
             return True
         except sqlite3.Error as e:
-            print(f"Erreur SQLite execute : {e}")
+            logging.error(f"Erreur SQLite execute : {e}")
             return False
 
     def execute_insert(self, query: str, params: tuple[Any, ...] = ()) -> int | None:
@@ -86,7 +88,7 @@ class SQLiteRepository:
                 conn.commit()
                 return cursor.lastrowid
         except sqlite3.Error as e:
-            print(f"Erreur SQLite execute_insert : {e}")
+            logging.error(f"Erreur SQLite execute_insert : {e}")
             return None
 
     def get_all(self):
@@ -118,7 +120,7 @@ class SQLiteRepository:
         data = self._to_dict(dto)
 
         if self.PK not in data or data[self.PK] is None:
-            print(f"Erreur : {self.PK} manquant pour update.")
+            logging.error(f"{self.PK} manquant pour update.")
             return False
 
         pk_value = data.pop(self.PK)

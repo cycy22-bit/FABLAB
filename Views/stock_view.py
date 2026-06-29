@@ -3,9 +3,10 @@ from .components import title_text, input_field, primary_button, card, notify
 
 
 class StockView:
-    def __init__(self, page: ft.Page, stock_service):
+    def __init__(self, page: ft.Page, stock_service, readonly: bool = False):
         self.page = page
         self.stock_service = stock_service
+        self.readonly = readonly
 
         self.nom_field = input_field("Nom du matériel")
         self.categorie_field = input_field("Catégorie")
@@ -26,10 +27,12 @@ class StockView:
     def build(self) -> ft.Control:
         self.refresh_table()
 
-        return ft.Column(
-            controls=[
-                title_text("Inventaire / Stock"),
+        controls = [
+            title_text("Stock disponible" if self.readonly else "Inventaire / Stock"),
+        ]
 
+        if not self.readonly:
+            controls.append(
                 card(
                     ft.Column(
                         controls=[
@@ -41,18 +44,23 @@ class StockView:
                         ],
                         spacing=10,
                     )
-                ),
+                )
+            )
 
-                card(
-                    ft.Column(
-                        controls=[
-                            ft.Text("Liste des matériels", size=18, weight=ft.FontWeight.BOLD),
-                            self.table,
-                        ],
-                        scroll=ft.ScrollMode.AUTO,
-                    )
-                ),
-            ],
+        controls.append(
+            card(
+                ft.Column(
+                    controls=[
+                        ft.Text("Liste des matériels", size=18, weight=ft.FontWeight.BOLD),
+                        self.table,
+                    ],
+                    scroll=ft.ScrollMode.AUTO,
+                )
+            )
+        )
+
+        return ft.Column(
+            controls=controls,
             spacing=20,
             expand=True,
             scroll=ft.ScrollMode.AUTO,
@@ -62,7 +70,10 @@ class StockView:
         self.table.rows.clear()
 
         try:
-            materiels = self.stock_service.consulter_inventaire()
+            if hasattr(self.stock_service, "consulter_inventaire"):
+                materiels = self.stock_service.consulter_inventaire()
+            else:
+                materiels = self.stock_service.get_all()
 
             for materiel in materiels:
                 self.table.rows.append(
@@ -77,10 +88,14 @@ class StockView:
                     )
                 )
 
-        except Exception:
-            pass
+        except Exception as ex:
+            notify(self.page, f"Erreur de chargement du stock : {ex}", False)
 
     def on_save_clicked(self, e):
+        if self.readonly:
+            notify(self.page, "Action interdite : accès étudiant en lecture seule.", False)
+            return
+
         try:
             nom = self.nom_field.value.strip()
             categorie = self.categorie_field.value.strip()
@@ -89,6 +104,10 @@ class StockView:
 
             if not nom or not categorie:
                 notify(self.page, "Nom et catégorie obligatoires.", success=False)
+                return
+
+            if quantite < 0 or stock_minimum < 0:
+                notify(self.page, "La quantité et le stock minimum doivent être positifs.", False)
                 return
 
             result = self.stock_service.ajouter_materiel(

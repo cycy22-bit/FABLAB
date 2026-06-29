@@ -1,6 +1,6 @@
 import flet as ft
 
-from .components import BG_COLOR, PRIMARY_COLOR
+from .components import BG_COLOR, PRIMARY_COLOR, DARK_COLOR, logo_ulc_icam
 from .dashboard_view import DashboardView
 from .stock_view import StockView
 from .emprunt_view import EmpruntView
@@ -43,7 +43,6 @@ class MainScreen:
         self.content_area = ft.Container(expand=True, padding=25)
 
     def build(self) -> ft.Control:
-        print("ROLE REÇU DANS HOME_VIEW :", self.user)
         self.content_area.content = DashboardView(
             page=self.page,
             statistique_service=self.statistique_service,
@@ -63,17 +62,22 @@ class MainScreen:
 
     def sidebar(self) -> ft.Container:
         role = self.user.get("role", "").upper()
+        nom = self.user.get("nom", "Utilisateur")
 
         def menu_button(label, icon, action):
             return ft.TextButton(
                 content=ft.Row(
                     controls=[
-                        ft.Icon(icon, size=20),
-                        ft.Text(label),
+                        ft.Icon(icon, size=20, color="white"),
+                        ft.Text(label, color="white"),
                     ],
                     spacing=10,
                 ),
                 on_click=action,
+                style=ft.ButtonStyle(
+                    overlay_color="#1E88E533",
+                    shape=ft.RoundedRectangleBorder(radius=8),
+                ),
             )
 
         menu_items = [
@@ -102,23 +106,43 @@ class MainScreen:
 
         menu_items.append(ft.Container(expand=True))
         menu_items.append(
-            menu_button("Déconnexion", ft.Icons.LOGOUT, lambda e: self.page.go("/login"))
+            menu_button("Déconnexion", ft.Icons.LOGOUT, lambda e: self.logout())
         )
 
         return ft.Container(
-            width=260,
-            bgcolor="white",
+            width=270,
+            bgcolor=DARK_COLOR,
             padding=20,
             content=ft.Column(
                 controls=[
-                    ft.Text("SG-FabLab", size=24, weight=ft.FontWeight.BOLD, color=PRIMARY_COLOR),
-                    ft.Text(f"Connecté : {role}", size=12, color="#666666"),
-                    ft.Divider(),
+                    ft.Row(
+                        controls=[
+                            logo_ulc_icam(42),
+                            ft.Column(
+                                controls=[
+                                    ft.Text("SG-FabLab", size=22, weight=ft.FontWeight.BOLD, color=PRIMARY_COLOR),
+                                    ft.Text("ULC-ICAM", size=11, color="white"),
+                                ],
+                                spacing=0,
+                            ),
+                        ],
+                        spacing=10,
+                    ),
+                    ft.Divider(color="#1E88E555"),
+                    ft.Text(f"{nom}", size=13, color="white"),
+                    ft.Text(f"Rôle : {role}", size=12, color="#B0BEC5"),
+                    ft.Divider(color="#1E88E555"),
                     *menu_items,
                 ],
-                spacing=6,
+                spacing=7,
             ),
         )
+
+    def logout(self):
+        self.page.controls.clear()
+        self.page.go("/login")
+        self.page.update()
+
     def set_content(self, control: ft.Control):
         self.content_area.content = control
         self.page.update()
@@ -132,6 +156,8 @@ class MainScreen:
         )
 
     def show_machines(self):
+        if self.user.get("role", "").upper() != "GESTIONNAIRE":
+            return
         self.set_content(
             MachineView(
                 page=self.page,
@@ -144,14 +170,17 @@ class MainScreen:
             ReservationView(
                 page=self.page,
                 reservation_service=self.reservation_service,
+                user=self.user,
             ).build()
         )
 
     def show_stock(self):
+        role = self.user.get("role", "").upper()
         self.set_content(
             StockView(
                 page=self.page,
                 stock_service=self.stock_service,
+                readonly=(role == "ETUDIANT"),
             ).build()
         )
 
@@ -160,10 +189,13 @@ class MainScreen:
             EmpruntView(
                 page=self.page,
                 emprunt_service=self.emprunt_service,
+                user=self.user,
             ).build()
         )
-
+        
     def show_fournisseurs(self):
+        if self.user.get("role", "").upper() != "GESTIONNAIRE":
+            return
         self.set_content(
             FournisseurView(
                 page=self.page,
@@ -172,6 +204,8 @@ class MainScreen:
         )
 
     def show_commandes(self):
+        if self.user.get("role", "").upper() != "GESTIONNAIRE":
+            return
         self.set_content(
             CommandeView(
                 page=self.page,
@@ -180,6 +214,8 @@ class MainScreen:
         )
 
     def show_historique(self):
+        if self.user.get("role", "").upper() != "GESTIONNAIRE":
+            return
         self.set_content(
             HistoriqueView(
                 page=self.page,
@@ -194,6 +230,3 @@ class MainScreen:
                 alerte_service=self.alerte_service,
             ).build()
         )
-
-    def on_save_clicked(self, e):
-        pass

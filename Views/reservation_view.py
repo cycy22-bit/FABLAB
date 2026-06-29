@@ -3,9 +3,11 @@ from .components import title_text, input_field, primary_button, card, notify
 
 
 class ReservationView:
-    def __init__(self, page: ft.Page, reservation_service):
+    def __init__(self, page: ft.Page, reservation_service, user: dict):
         self.page = page
         self.reservation_service = reservation_service
+        self.user = user
+        self.role = self.user.get("role", "").upper()
 
         self.id_etudiant_field = input_field("ID étudiant")
         self.id_machine_field = input_field("ID machine")
@@ -29,20 +31,26 @@ class ReservationView:
     def build(self) -> ft.Control:
         self.refresh_table()
 
+        form_controls = []
+
+        if self.role == "GESTIONNAIRE":
+            form_controls.append(self.id_etudiant_field)
+
+        form_controls += [
+            self.id_machine_field,
+            self.date_field,
+            self.heure_debut_field,
+            self.heure_fin_field,
+            primary_button("Réserver machine", self.on_reserver_clicked, ft.Icons.CALENDAR_MONTH),
+        ]
+
         return ft.Column(
             controls=[
-                title_text("Réservations de machines"),
+                title_text("Gestion des réservations" if self.role == "GESTIONNAIRE" else "Mes réservations"),
 
                 card(
                     ft.Column(
-                        controls=[
-                            self.id_etudiant_field,
-                            self.id_machine_field,
-                            self.date_field,
-                            self.heure_debut_field,
-                            self.heure_fin_field,
-                            primary_button("Réserver machine", self.on_reserver_clicked, ft.Icons.CALENDAR_MONTH),
-                        ],
+                        controls=form_controls,
                         spacing=10,
                     )
                 ),
@@ -66,7 +74,10 @@ class ReservationView:
         self.table.rows.clear()
 
         try:
-            reservations = self.reservation_service.get_all()
+            if self.role == "ETUDIANT" and hasattr(self.reservation_service, "find_by_etudiant"):
+                reservations = self.reservation_service.find_by_etudiant(self.user.get("id"))
+            else:
+                reservations = self.reservation_service.get_all()
 
             for reservation in reservations:
                 self.table.rows.append(
@@ -82,13 +93,18 @@ class ReservationView:
                         ]
                     )
                 )
-        except Exception:
-            pass
+        except Exception as ex:
+            notify(self.page, f"Erreur de chargement des réservations : {ex}", False)
 
     def on_reserver_clicked(self, e):
         try:
+            if self.role == "ETUDIANT":
+                id_etudiant = int(self.user.get("id"))
+            else:
+                id_etudiant = int(self.id_etudiant_field.value)
+
             result = self.reservation_service.reserver_machine(
-                id_etudiant=int(self.id_etudiant_field.value),
+                id_etudiant=id_etudiant,
                 id_machine=int(self.id_machine_field.value),
                 date_reservation=self.date_field.value,
                 heure_debut=self.heure_debut_field.value,
