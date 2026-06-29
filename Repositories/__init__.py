@@ -1,13 +1,13 @@
-from .sqlite.sqlite_repositories import (
-    SQLiteEtudiantRepository,
-    SQLiteGestionnaireRepository,
-    SQLiteMachineRepository,
-    SQLiteMaterielRepository,
-    SQLiteReservationRepository,
-    SQLiteEmpruntRepository,
-    SQLiteFournisseurRepository,
-    SQLiteCommandeRepository,
-    SQLiteLigneCommandeRepository,
-    SQLiteMouvementStockRepository,
-    SQLiteAlerteRepository,
-)
+from .Sqlite_repo import SQLiteRepository
+
+from .interfaces.etudiant_repository import IEtudiantRepository
+from .interfaces.gestionnaire_repository import IGestionnaireRepository
+from .interfaces.machine_repository import IMachineRepository
+from .interfaces.materiel_repository import IMaterielRepository
+from .interfaces.reservation_repository import IReservationRepository
+from .interfaces.emprunt_repository import IEmpruntRepository
+from .interfaces.fournisseur_repository import IFournisseurRepository
+from .interfaces.commande_repository import ICommandeRepository
+from .interfaces.lignecommande_repository import ILigneCommandeRepository
+from .interfaces.mouvementstock_repository import IMouvementStockRepository
+from .interfaces.alerte_repository import IAlerteRepository
