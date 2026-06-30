@@ -4,7 +4,16 @@ from Views.login_view import LoginView
 from Views.home_view import MainScreen
 from Services.service_auth import AuthService
 
-
+from Services.app_services import (
+    StockService,
+    EmpruntService,
+    AlerteService,
+    MachineService,
+    ReservationService,
+    FournisseurService,
+    CommandeService,
+    HistoriqueService,
+)
 class FakeService:
     """
     Service temporaire pour éviter que l'application plante
@@ -53,15 +62,15 @@ def main(page: ft.Page):
 
     auth_service = AuthService()
 
-    stock_service = FakeService()
-    emprunt_service = FakeService()
-    alerte_service = FakeService()
-    machine_service = FakeService()
-    reservation_service = FakeService()
-    fournisseur_service = FakeService()
-    commande_service = FakeService()
-    historique_service = FakeService()
-    statistique_service = FakeService()
+    stock_service = StockService()
+    emprunt_service = EmpruntService()
+    alerte_service = AlerteService()
+    machine_service = MachineService()
+    reservation_service = ReservationService()
+    fournisseur_service = FournisseurService()
+    commande_service = CommandeService()
+    historique_service = HistoriqueService()
+    statistique_service = None
 
     def show_login():
         page.controls.clear()

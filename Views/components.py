@@ -102,7 +102,7 @@ def logo_ulc_icam(size: int = 42) -> ft.Control:
         height=size,
         border_radius=8,
         bgcolor=PRIMARY_COLOR,
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment(0, 0),
         content=ft.Text(
             "ULC\nICAM",
             size=9,
