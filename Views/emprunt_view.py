@@ -28,39 +28,52 @@ class EmpruntView:
     def build(self) -> ft.Control:
         self.refresh_table()
 
-        form_controls = []
-
-        if self.role == "GESTIONNAIRE":
-            form_controls.append(self.id_etudiant_field)
-
-        form_controls += [
-            self.id_materiel_field,
-            self.quantite_field,
-            self.duree_field,
-            primary_button("Demander emprunt", self.on_emprunter_clicked, ft.Icons.SEND),
+        controls = [
+            title_text(
+                "Liste des emprunts"
+                if self.role == "GESTIONNAIRE"
+                else "Mes emprunts"
+            )
         ]
 
-        return ft.Column(
-            controls=[
-                title_text("Gestion des emprunts" if self.role == "GESTIONNAIRE" else "Mes emprunts"),
-
-                card(
-                    ft.Column(
-                        controls=form_controls,
-                        spacing=10,
-                    )
-                ),
-
+        # Le formulaire n'est visible que pour l'étudiant
+        if self.role == "ETUDIANT":
+            controls.append(
                 card(
                     ft.Column(
                         controls=[
-                            ft.Text("Liste des emprunts", size=18, weight=ft.FontWeight.BOLD),
-                            self.table,
+                            self.id_materiel_field,
+                            self.quantite_field,
+                            self.duree_field,
+                            primary_button(
+                                "Demander emprunt",
+                                self.on_emprunter_clicked,
+                                ft.Icons.SEND,
+                            ),
                         ],
-                        scroll=ft.ScrollMode.AUTO,
+                        spacing=10,
                     )
-                ),
-            ],
+                )
+            )
+
+        controls.append(
+            card(
+                ft.Column(
+                    controls=[
+                        ft.Text(
+                            "Liste des emprunts",
+                            size=18,
+                            weight=ft.FontWeight.BOLD,
+                        ),
+                        self.table,
+                    ],
+                    scroll=ft.ScrollMode.AUTO,
+                )
+            )
+        )
+
+        return ft.Column(
+            controls=controls,
             spacing=20,
             expand=True,
             scroll=ft.ScrollMode.AUTO,

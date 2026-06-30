@@ -10,7 +10,7 @@ from .reservation_view import ReservationView
 from .fournisseur_view import FournisseurView
 from .commande_view import CommandeView
 from .historique_view import HistoriqueView
-
+from .machine_disponible_view import MachineDisponibleView
 
 class MainScreen:
     def __init__(
@@ -98,10 +98,13 @@ class MainScreen:
 
         elif role == "ETUDIANT":
             menu_items += [
-                menu_button("Réservations", ft.Icons.CALENDAR_MONTH, lambda e: self.show_reservations()),
-                menu_button("Emprunts", ft.Icons.ASSIGNMENT, lambda e: self.show_emprunts()),
+                menu_button("Réserver une machine", ft.Icons.CALENDAR_MONTH, lambda e: self.show_reservations()),
+                menu_button("Mes réservations", ft.Icons.EVENT_NOTE, lambda e: self.show_reservations()),
+                menu_button("Machines disponibles", ft.Icons.PRECISION_MANUFACTURING, lambda e: self.show_machines_disponibles()),
+                menu_button("Demander un emprunt", ft.Icons.ASSIGNMENT, lambda e: self.show_emprunts()),
+                menu_button("Mes emprunts", ft.Icons.LIST_ALT, lambda e: self.show_emprunts()),
                 menu_button("Stock disponible", ft.Icons.INVENTORY, lambda e: self.show_stock()),
-                menu_button("Alertes / Messages", ft.Icons.WARNING, lambda e: self.show_alertes()),
+                menu_button("Alertes", ft.Icons.WARNING, lambda e: self.show_alertes()),
             ]
 
         menu_items.append(ft.Container(expand=True))
@@ -230,3 +233,10 @@ class MainScreen:
                 alerte_service=self.alerte_service,
             ).build()
         )
+    def show_machines_disponibles(self):
+        self.set_content(
+            MachineDisponibleView(
+                page=self.page,
+                machine_service=self.machine_service,
+            ).build()
+    )

@@ -31,40 +31,53 @@ class ReservationView:
     def build(self) -> ft.Control:
         self.refresh_table()
 
-        form_controls = []
-
-        if self.role == "GESTIONNAIRE":
-            form_controls.append(self.id_etudiant_field)
-
-        form_controls += [
-            self.id_machine_field,
-            self.date_field,
-            self.heure_debut_field,
-            self.heure_fin_field,
-            primary_button("Réserver machine", self.on_reserver_clicked, ft.Icons.CALENDAR_MONTH),
+        controls = [
+            title_text(
+                "Liste des réservations"
+                if self.role == "GESTIONNAIRE"
+                else "Mes réservations"
+            )
         ]
 
-        return ft.Column(
-            controls=[
-                title_text("Gestion des réservations" if self.role == "GESTIONNAIRE" else "Mes réservations"),
-
-                card(
-                    ft.Column(
-                        controls=form_controls,
-                        spacing=10,
-                    )
-                ),
-
+        # Le formulaire n'est visible que pour l'étudiant
+        if self.role == "ETUDIANT":
+            controls.append(
                 card(
                     ft.Column(
                         controls=[
-                            ft.Text("Liste des réservations", size=18, weight=ft.FontWeight.BOLD),
-                            self.table,
+                            self.id_machine_field,
+                            self.date_field,
+                            self.heure_debut_field,
+                            self.heure_fin_field,
+                            primary_button(
+                                "Réserver machine",
+                                self.on_reserver_clicked,
+                                ft.Icons.CALENDAR_MONTH,
+                            ),
                         ],
-                        scroll=ft.ScrollMode.AUTO,
+                        spacing=10,
                     )
-                ),
-            ],
+                )
+            )
+
+        controls.append(
+            card(
+                ft.Column(
+                    controls=[
+                        ft.Text(
+                            "Liste des réservations",
+                            size=18,
+                            weight=ft.FontWeight.BOLD,
+                        ),
+                        self.table,
+                    ],
+                    scroll=ft.ScrollMode.AUTO,
+                )
+            )
+        )
+
+        return ft.Column(
+            controls=controls,
             spacing=20,
             expand=True,
             scroll=ft.ScrollMode.AUTO,

@@ -111,7 +111,6 @@ class StockView:
             padding=10,
             border_radius=8,
             bgcolor="white",
-            border=ft.border.all(1, "#E0E0E0"),
             content=ft.Row(
                 controls=[
                     ft.Text(str(getattr(materiel, "id_materiel", "")), width=50),
@@ -125,29 +124,29 @@ class StockView:
             ),
         )
 
-def refresh_list(self):
-    self.list_container.controls.clear()
+    def refresh_list(self):
+        self.list_container.controls.clear()
 
-    try:
-        materiels = self.stock_service.consulter_inventaire()
-        print("MATERIELS CHARGES :", materiels)
+        try:
+            materiels = self.stock_service.consulter_inventaire()
+            print("MATERIELS CHARGES :", materiels)
 
-        if not materiels:
+            if not materiels:
+                self.list_container.controls.append(
+                    ft.Text("Aucun matériel disponible.", color="#777777")
+                )
+            else:
+                for materiel in materiels:
+                    self.list_container.controls.append(self._materiel_row(materiel))
+
+            self.page.update()
+
+        except Exception as ex:
+            print("ERREUR STOCK VIEW :", ex)
             self.list_container.controls.append(
-                ft.Text("Aucun matériel disponible.", color="#777777")
+                ft.Text(f"Erreur de chargement : {ex}", color="red")
             )
-        else:
-            for materiel in materiels:
-                self.list_container.controls.append(self._materiel_row(materiel))
-
-        self.page.update()
-
-    except Exception as ex:
-        print("ERREUR STOCK VIEW :", ex)
-        self.list_container.controls.append(
-            ft.Text(f"Erreur de chargement : {ex}", color="red")
-        )
-        self.page.update()
+            self.page.update()
 
     def on_save_clicked(self, e):
         if self.readonly:

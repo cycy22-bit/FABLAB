@@ -142,7 +142,7 @@ def init_db():
         (id_gestionnaire, nom_gestionnaire, email_gestionnaire, mot_de_passe_g)
         VALUES (?, ?, ?, ?)
         """, [
-            (1, "Gestionnaire FabLab", "gestionnaire@ulc-cam.com", "1234"),
+            (1, "Gestionnaire FabLab", "gestionnaire@ulc-icam.com", "1234"),
         ])
 
         c.executemany("""
