@@ -45,6 +45,11 @@ class MainScreen:
     def build(self) -> ft.Control:
         self.content_area.content = DashboardView(
             page=self.page,
+            user=self.user,
+            emprunt_service=self.emprunt_service,
+            reservation_service=self.reservation_service,
+            stock_service=self.stock_service,
+            alerte_service=self.alerte_service,
             statistique_service=self.statistique_service,
         ).build()
 
@@ -154,6 +159,11 @@ class MainScreen:
         self.set_content(
             DashboardView(
                 page=self.page,
+                user=self.user,
+                emprunt_service=self.emprunt_service,
+                reservation_service=self.reservation_service,
+                stock_service=self.stock_service,
+                alerte_service=self.alerte_service,
                 statistique_service=self.statistique_service,
             ).build()
         )
@@ -239,4 +249,4 @@ class MainScreen:
                 page=self.page,
                 machine_service=self.machine_service,
             ).build()
-    )
+        )
