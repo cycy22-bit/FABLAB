@@ -120,3 +120,65 @@ def notify(page: ft.Page, message: str, success: bool = True) -> None:
     )
     page.snack_bar.open = True
     page.update()
+
+
+def show_popup(
+    page: ft.Page,
+    title: str,
+    message: str,
+    status: str = "",
+    success: bool = True,
+):
+    def close_popup(e):
+        dialog.open = False
+        page.update()
+
+    dialog = ft.AlertDialog(
+        modal=True,
+        title=ft.Column(
+            controls=[
+                ft.Text(
+                    "ℹ",
+                    size=42,
+                    color="#00AEEF" if success else "#C62828",
+                    text_align=ft.TextAlign.CENTER,
+                ),
+                ft.Text(
+                    title,
+                    size=22,
+                    weight=ft.FontWeight.BOLD,
+                    text_align=ft.TextAlign.CENTER,
+                ),
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=5,
+        ),
+        content=ft.Column(
+            controls=[
+                ft.Text(
+                    message,
+                    size=14,
+                    text_align=ft.TextAlign.CENTER,
+                ),
+                ft.Divider(),
+                ft.Text(
+                    f"Statut : {status.upper()}" if status else "",
+                    size=16,
+                    weight=ft.FontWeight.BOLD,
+                    color="#2E7D32" if success else "#C62828",
+                    text_align=ft.TextAlign.CENTER,
+                ),
+            ],
+            tight=True,
+            spacing=12,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        actions=[
+            ft.TextButton("Fermer", on_click=close_popup),
+        ],
+        actions_alignment=ft.MainAxisAlignment.CENTER,
+    )
+
+    page.dialog = dialog
+    dialog.open = True
+    page.update()

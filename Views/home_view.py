@@ -10,7 +10,7 @@ from .reservation_view import ReservationView
 from .fournisseur_view import FournisseurView
 from .commande_view import CommandeView
 from .historique_view import HistoriqueView
-from .machine_disponible_view import MachineDisponibleView
+
 
 class MainScreen:
     def __init__(
@@ -29,7 +29,6 @@ class MainScreen:
     ):
         self.page = page
         self.user = user
-
         self.stock_service = stock_service
         self.emprunt_service = emprunt_service
         self.alerte_service = alerte_service
@@ -39,7 +38,6 @@ class MainScreen:
         self.commande_service = commande_service
         self.historique_service = historique_service
         self.statistique_service = statistique_service
-
         self.content_area = ft.Container(expand=True, padding=25)
 
     def build(self) -> ft.Control:
@@ -56,11 +54,7 @@ class MainScreen:
         return ft.Row(
             controls=[
                 self.sidebar(),
-                ft.Container(
-                    content=self.content_area,
-                    expand=True,
-                    bgcolor=BG_COLOR,
-                ),
+                ft.Container(content=self.content_area, expand=True, bgcolor=BG_COLOR),
             ],
             expand=True,
         )
@@ -92,9 +86,9 @@ class MainScreen:
         if role == "GESTIONNAIRE":
             menu_items += [
                 menu_button("Machines", ft.Icons.PRECISION_MANUFACTURING, lambda e: self.show_machines()),
-                menu_button("Réservations", ft.Icons.CALENDAR_MONTH, lambda e: self.show_reservations()),
+                menu_button("Demandes de réservation", ft.Icons.CALENDAR_MONTH, lambda e: self.show_reservations()),
                 menu_button("Inventaire / Stock", ft.Icons.INVENTORY, lambda e: self.show_stock()),
-                menu_button("Emprunts", ft.Icons.ASSIGNMENT, lambda e: self.show_emprunts()),
+                menu_button("Demandes d'emprunt", ft.Icons.ASSIGNMENT, lambda e: self.show_emprunts()),
                 menu_button("Fournisseurs", ft.Icons.BUSINESS, lambda e: self.show_fournisseurs()),
                 menu_button("Commandes", ft.Icons.SHOPPING_CART, lambda e: self.show_commandes()),
                 menu_button("Historique", ft.Icons.HISTORY, lambda e: self.show_historique()),
@@ -103,19 +97,15 @@ class MainScreen:
 
         elif role == "ETUDIANT":
             menu_items += [
-                menu_button("Réserver une machine", ft.Icons.CALENDAR_MONTH, lambda e: self.show_reservations()),
-                menu_button("Mes réservations", ft.Icons.EVENT_NOTE, lambda e: self.show_reservations()),
-                menu_button("Machines disponibles", ft.Icons.PRECISION_MANUFACTURING, lambda e: self.show_machines_disponibles()),
-                menu_button("Demander un emprunt", ft.Icons.ASSIGNMENT, lambda e: self.show_emprunts()),
-                menu_button("Mes emprunts", ft.Icons.LIST_ALT, lambda e: self.show_emprunts()),
-                menu_button("Stock disponible", ft.Icons.INVENTORY, lambda e: self.show_stock()),
+                menu_button("Réserver une machine", ft.Icons.CALENDAR_MONTH, lambda e: self.show_demande_reservation()),
+                menu_button("Mes réservations", ft.Icons.EVENT_NOTE, lambda e: self.show_mes_reservations()),
+                menu_button("Demander un emprunt", ft.Icons.ASSIGNMENT, lambda e: self.show_demande_emprunt()),
+                menu_button("Mes emprunts", ft.Icons.LIST_ALT, lambda e: self.show_mes_emprunts()),
                 menu_button("Alertes", ft.Icons.WARNING, lambda e: self.show_alertes()),
             ]
 
         menu_items.append(ft.Container(expand=True))
-        menu_items.append(
-            menu_button("Déconnexion", ft.Icons.LOGOUT, lambda e: self.logout())
-        )
+        menu_items.append(menu_button("Déconnexion", ft.Icons.LOGOUT, lambda e: self.logout()))
 
         return ft.Container(
             width=270,
@@ -171,29 +161,21 @@ class MainScreen:
     def show_machines(self):
         if self.user.get("role", "").upper() != "GESTIONNAIRE":
             return
-        self.set_content(
-            MachineView(
-                page=self.page,
-                machine_service=self.machine_service,
-            ).build()
-        )
+        self.set_content(MachineView(page=self.page, machine_service=self.machine_service).build())
+
+    def show_stock(self):
+        if self.user.get("role", "").upper() != "GESTIONNAIRE":
+            return
+        self.set_content(StockView(page=self.page, stock_service=self.stock_service, readonly=False).build())
 
     def show_reservations(self):
         self.set_content(
             ReservationView(
                 page=self.page,
                 reservation_service=self.reservation_service,
+                machine_service=self.machine_service,
                 user=self.user,
-            ).build()
-        )
-
-    def show_stock(self):
-        role = self.user.get("role", "").upper()
-        self.set_content(
-            StockView(
-                page=self.page,
-                stock_service=self.stock_service,
-                readonly=(role == "ETUDIANT"),
+                mode="liste",
             ).build()
         )
 
@@ -202,51 +184,70 @@ class MainScreen:
             EmpruntView(
                 page=self.page,
                 emprunt_service=self.emprunt_service,
+                stock_service=self.stock_service,
                 user=self.user,
+                mode="liste",
             ).build()
         )
-        
+
+    def show_demande_reservation(self):
+        self.set_content(
+            ReservationView(
+                page=self.page,
+                reservation_service=self.reservation_service,
+                machine_service=self.machine_service,
+                user=self.user,
+                mode="demande",
+            ).build()
+        )
+
+    def show_mes_reservations(self):
+        self.set_content(
+            ReservationView(
+                page=self.page,
+                reservation_service=self.reservation_service,
+                machine_service=self.machine_service,
+                user=self.user,
+                mode="liste",
+            ).build()
+        )
+
+    def show_demande_emprunt(self):
+        self.set_content(
+            EmpruntView(
+                page=self.page,
+                emprunt_service=self.emprunt_service,
+                stock_service=self.stock_service,
+                user=self.user,
+                mode="demande",
+            ).build()
+        )
+
+    def show_mes_emprunts(self):
+        self.set_content(
+            EmpruntView(
+                page=self.page,
+                emprunt_service=self.emprunt_service,
+                stock_service=self.stock_service,
+                user=self.user,
+                mode="liste",
+            ).build()
+        )
+
     def show_fournisseurs(self):
         if self.user.get("role", "").upper() != "GESTIONNAIRE":
             return
-        self.set_content(
-            FournisseurView(
-                page=self.page,
-                fournisseur_service=self.fournisseur_service,
-            ).build()
-        )
+        self.set_content(FournisseurView(page=self.page, fournisseur_service=self.fournisseur_service).build())
 
     def show_commandes(self):
         if self.user.get("role", "").upper() != "GESTIONNAIRE":
             return
-        self.set_content(
-            CommandeView(
-                page=self.page,
-                commande_service=self.commande_service,
-            ).build()
-        )
+        self.set_content(CommandeView(page=self.page, commande_service=self.commande_service).build())
 
     def show_historique(self):
         if self.user.get("role", "").upper() != "GESTIONNAIRE":
             return
-        self.set_content(
-            HistoriqueView(
-                page=self.page,
-                historique_service=self.historique_service,
-            ).build()
-        )
+        self.set_content(HistoriqueView(page=self.page, historique_service=self.historique_service).build())
 
     def show_alertes(self):
-        self.set_content(
-            AlerteView(
-                page=self.page,
-                alerte_service=self.alerte_service,
-            ).build()
-        )
-    def show_machines_disponibles(self):
-        self.set_content(
-            MachineDisponibleView(
-                page=self.page,
-                machine_service=self.machine_service,
-            ).build()
-        )
+        self.set_content(AlerteView(page=self.page, alerte_service=self.alerte_service).build())
