@@ -111,8 +111,24 @@ def main(page: ft.Page):
             statistique_service=statistique_service,
         )
 
-        page.add(main_screen.build())
-        page.update()
+        try:
+            page.add(main_screen.build())
+            page.update()
+        except Exception as ex:
+            print("ERREUR AFFICHAGE HOME :", ex)
+
+            page.controls.clear()
+            page.add(
+                ft.Container(
+                    padding=30,
+                    content=ft.Text(
+                        f"Erreur dans l'affichage : {ex}",
+                        color="red",
+                        size=18,
+                    ),
+                )
+            )
+            page.update()
 
     def route_change(e):
         if page.route == "/login":

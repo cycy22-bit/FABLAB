@@ -1,2 +1,12 @@
-from .materiel_service import MaterielService
-from .emprunt_service import EmpruntService
+from .app_services import (
+    StockService,
+    EmpruntService,
+    AlerteService,
+    MachineService,
+    ReservationService,
+    FournisseurService,
+    CommandeService,
+    HistoriqueService,
+)
+
+from .service_auth import AuthService

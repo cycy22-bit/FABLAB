@@ -1,5 +1,10 @@
 import flet as ft
-from .components import PRIMARY_COLOR, WHITE, card
+from .components import card
+
+
+BLUE = "#0B63F6"
+DARK = "#111827"
+GRAY = "#64748B"
 
 
 class DashboardView:
@@ -30,321 +35,162 @@ class DashboardView:
 
         return ft.Column(
             controls=[
-                self._top_title(),
+                ft.Text("Tableau de bord", size=34, weight=ft.FontWeight.BOLD, color=DARK),
                 self._profile_card(),
-                self._stats_row(len(reservations), len(emprunts), len(alertes), len(materiels)),
-                self._main_tables(emprunts, reservations),
-                self._info_card(),
+                ft.Row(
+                    controls=[
+                        self._stat_card("Réservations", len(reservations), BLUE),
+                        self._stat_card("Emprunts", len(emprunts), "#6D28D9"),
+                        self._stat_card("Alertes", len(alertes), "#F97316"),
+                        self._stat_card("Matériels", len(materiels), "#16A34A"),
+                    ],
+                    spacing=15,
+                    wrap=True,
+                ),
+                ft.Row(
+                    controls=[
+                        self._emprunts_card(emprunts),
+                        self._reservations_card(reservations),
+                    ],
+                    spacing=15,
+                    wrap=True,
+                ),
             ],
-            spacing=18,
+            spacing=20,
             expand=True,
             scroll=ft.ScrollMode.AUTO,
         )
 
-    def _top_title(self):
-        return ft.Row(
-            controls=[
-                ft.Container(
-                    width=45,
-                    height=45,
-                    border_radius=12,
-                    bgcolor="#EAF3FF",
-                    alignment=ft.Alignment(0, 0),
-                    content=ft.Icon(ft.Icons.DASHBOARD, color=PRIMARY_COLOR, size=28),
-                ),
-                ft.Text("Tableau de bord", size=32, weight=ft.FontWeight.BOLD, color="#111827"),
-            ],
-            spacing=15,
-        )
-
     def _profile_card(self):
         nom = self.user.get("nom", "Utilisateur")
-        email = self.user.get("email", "email non défini")
-        role_text = "Étudiant" if self.role == "ETUDIANT" else "Gestionnaire"
+        email = self.user.get("email", "Email non défini")
+        role = "Étudiant" if self.role == "ETUDIANT" else "Gestionnaire"
 
         return card(
             ft.Row(
                 controls=[
                     ft.Container(
-                        width=150,
-                        height=150,
-                        border_radius=28,
+                        width=110,
+                        height=110,
+                        border_radius=25,
                         bgcolor="#EAF3FF",
                         alignment=ft.Alignment(0, 0),
-                        content=ft.Icon(ft.Icons.PERSON, size=95, color="#0B63F6"),
+                        content=ft.Text("👤", size=55),
                     ),
                     ft.Column(
                         controls=[
-                            ft.Text("Bonjour,", size=24, color="#111827"),
+                            ft.Text("Bonjour,", size=22, color=DARK),
                             ft.Text(
                                 str(nom).replace(".", " ").upper(),
-                                size=42,
+                                size=36,
                                 weight=ft.FontWeight.BOLD,
-                                color="#0B63F6",
+                                color=BLUE,
                             ),
                             ft.Container(
-                                padding=ft.padding.symmetric(horizontal=14, vertical=6),
+                                padding=10,
                                 border_radius=10,
                                 bgcolor="#DDEBFF",
                                 content=ft.Text(
-                                    f"Rôle : {role_text}",
-                                    color="#0B63F6",
+                                    f"Rôle : {role}",
+                                    color=BLUE,
                                     weight=ft.FontWeight.BOLD,
                                 ),
                             ),
-                            ft.Row(
-                                controls=[
-                                    self._info_item(ft.Icons.EMAIL, email),
-                                    self._separator(),
-                                    self._info_item(ft.Icons.SCHOOL, "Promotion : L2"),
-                                    self._separator(),
-                                    self._info_item(ft.Icons.CALENDAR_MONTH, "Membre depuis : 2024"),
-                                ],
-                                spacing=12,
-                                wrap=True,
-                            ),
+                            ft.Text(email, size=14, color=GRAY),
+                            ft.Text("Promotion : L2 | Membre depuis : 2024", size=13, color=GRAY),
                         ],
-                        spacing=10,
+                        spacing=8,
                         expand=True,
                     ),
                 ],
-                spacing=35,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=25,
             ),
-            height=230,
+            height=200,
         )
 
-    def _info_item(self, icon, text):
-        return ft.Row(
-            controls=[
-                ft.Icon(icon, size=18, color="#0B63F6"),
-                ft.Text(str(text), size=14, color="#111827"),
-            ],
-            spacing=6,
-        )
-
-    def _separator(self):
-        return ft.Text("|", color="#CBD5E1")
-
-    def _stats_row(self, reservations, emprunts, alertes, materiels):
-        return ft.Row(
-            controls=[
-                self._stat_card("Réservations à venir", reservations, "Dans les prochains jours", ft.Icons.CALENDAR_MONTH, "#EAF3FF", "#0B63F6"),
-                self._stat_card("Emprunts en cours", emprunts, "À restituer prochainement", ft.Icons.ACCESS_TIME, "#F1ECFF", "#6D28D9"),
-                self._stat_card("Alertes", alertes, "Stock faible et messages", ft.Icons.NOTIFICATIONS, "#FFF1DE", "#F97316"),
-                self._stat_card("Matériels disponibles", materiels, "Dans l'inventaire du FabLab", ft.Icons.INVENTORY, "#E8F8EE", "#16A34A"),
-            ],
-            spacing=14,
-            wrap=True,
-        )
-
-    def _stat_card(self, title, value, subtitle, icon, bg_icon, color):
-        return ft.Container(
-            width=250,
-            height=120,
-            padding=18,
-            bgcolor=WHITE,
-            border_radius=16,
-            shadow=ft.BoxShadow(blur_radius=10, spread_radius=1, color="#E5E7EB"),
-            content=ft.Row(
+    def _stat_card(self, title, value, color):
+        return card(
+            ft.Column(
                 controls=[
-                    ft.Container(
-                        width=55,
-                        height=55,
-                        border_radius=30,
-                        bgcolor=bg_icon,
-                        alignment=ft.Alignment(0, 0),
-                        content=ft.Icon(icon, color=color, size=28),
-                    ),
-                    ft.Column(
-                        controls=[
-                            ft.Text(str(value), size=28, weight=ft.FontWeight.BOLD, color=color),
-                            ft.Text(title, size=13, weight=ft.FontWeight.BOLD, color="#111827"),
-                            ft.Text(subtitle, size=12, color="#64748B"),
-                        ],
-                        spacing=2,
-                    ),
+                    ft.Text(str(value), size=32, weight=ft.FontWeight.BOLD, color=color),
+                    ft.Text(title, size=15, weight=ft.FontWeight.BOLD, color=DARK),
                 ],
-                spacing=14,
+                spacing=5,
             ),
+            width=240,
+            height=110,
         )
 
-    def _main_tables(self, emprunts, reservations):
-        if self.role == "ETUDIANT":
-            left_title = "Mes emprunts en cours"
-            right_title = "Mes réservations à venir"
-        else:
-            left_title = "Demandes d'emprunt récentes"
-            right_title = "Réservations récentes"
-
-        return ft.Row(
-            controls=[
-                self._emprunts_card(left_title, emprunts),
-                self._reservations_card(right_title, reservations),
-            ],
-            spacing=14,
-            wrap=True,
-        )
-
-    def _emprunts_card(self, title, emprunts):
-        rows = []
+    def _emprunts_card(self, emprunts):
+        title = "Mes emprunts en cours" if self.role == "ETUDIANT" else "Demandes d'emprunt récentes"
+        controls = [ft.Text(title, size=20, weight=ft.FontWeight.BOLD, color=DARK)]
 
         if not emprunts:
-            rows.append(ft.Text("Aucun emprunt trouvé.", color="#64748B"))
+            controls.append(ft.Text("Aucun emprunt trouvé.", color=GRAY))
         else:
-            rows.append(self._table_header(["Matériel", "Quantité", "Date", "Statut"]))
+            controls.append(self._header(["Matériel", "Qté", "Date", "Statut"]))
 
-            for emprunt in emprunts[:5]:
-                rows.append(
-                    self._table_row(
+            for e in emprunts[:5]:
+                controls.append(
+                    self._row(
                         [
-                            getattr(emprunt, "nom_materiel", getattr(emprunt, "id_materiel", "")),
-                            getattr(emprunt, "quantite", ""),
-                            str(getattr(emprunt, "date_emprunt", ""))[:10],
-                            self._status_badge(getattr(emprunt, "statut_emprunt", "")),
+                            getattr(e, "nom_materiel", getattr(e, "id_materiel", "")),
+                            getattr(e, "quantite", ""),
+                            str(getattr(e, "date_emprunt", ""))[:10],
+                            getattr(e, "statut_emprunt", ""),
                         ]
                     )
                 )
 
-        return card(
-            ft.Column(
-                controls=[
-                    self._card_title(ft.Icons.ASSIGNMENT, title, "Liste des matériels empruntés"),
-                    *rows,
-                ],
-                spacing=12,
-            ),
-            width=520,
-        )
+        return card(ft.Column(controls=controls, spacing=12), width=520)
 
-    def _reservations_card(self, title, reservations):
-        rows = []
+    def _reservations_card(self, reservations):
+        title = "Mes réservations à venir" if self.role == "ETUDIANT" else "Réservations récentes"
+        controls = [ft.Text(title, size=20, weight=ft.FontWeight.BOLD, color=DARK)]
 
         if not reservations:
-            rows.append(ft.Text("Aucune réservation trouvée.", color="#64748B"))
+            controls.append(ft.Text("Aucune réservation trouvée.", color=GRAY))
         else:
-            rows.append(self._table_header(["Machine", "Date", "Heure", "Statut"]))
+            controls.append(self._header(["Machine", "Date", "Heure", "Statut"]))
 
-            for reservation in reservations[:5]:
-                heure = f"{getattr(reservation, 'heure_debut', '')} - {getattr(reservation, 'heure_fin', '')}"
-                rows.append(
-                    self._table_row(
+            for r in reservations[:5]:
+                heure = f"{getattr(r, 'heure_debut', '')} - {getattr(r, 'heure_fin', '')}"
+                controls.append(
+                    self._row(
                         [
-                            getattr(reservation, "nom_machine", getattr(reservation, "id_machine", "")),
-                            getattr(reservation, "date_reservation", ""),
+                            getattr(r, "nom_machine", getattr(r, "id_machine", "")),
+                            getattr(r, "date_reservation", ""),
                             heure,
-                            self._status_badge(getattr(reservation, "statut_reservation", "")),
+                            getattr(r, "statut_reservation", ""),
                         ]
                     )
                 )
 
-        return card(
-            ft.Column(
-                controls=[
-                    self._card_title(ft.Icons.CALENDAR_MONTH, title, "Vos prochaines réservations de machines"),
-                    *rows,
-                ],
-                spacing=12,
-            ),
-            width=580,
-        )
+        return card(ft.Column(controls=controls, spacing=12), width=570)
 
-    def _card_title(self, icon, title, subtitle):
-        return ft.Row(
-            controls=[
-                ft.Container(
-                    width=46,
-                    height=46,
-                    border_radius=10,
-                    bgcolor="#0B63F6",
-                    alignment=ft.Alignment(0, 0),
-                    content=ft.Icon(icon, color=WHITE, size=24),
-                ),
-                ft.Column(
-                    controls=[
-                        ft.Text(title, size=18, weight=ft.FontWeight.BOLD, color="#111827"),
-                        ft.Text(subtitle, size=12, color="#64748B"),
-                    ],
-                    spacing=1,
-                ),
-            ],
-            spacing=12,
-        )
-
-    def _table_header(self, labels):
-        return ft.Row(
-            controls=[
-                ft.Text(label, expand=True, size=12, color="#475569", weight=ft.FontWeight.BOLD)
-                for label in labels
-            ]
-        )
-
-    def _table_row(self, values):
-        controls = []
-
-        for value in values:
-            if isinstance(value, ft.Control):
-                controls.append(ft.Container(content=value, expand=True))
-            else:
-                controls.append(ft.Text(str(value), expand=True, size=13, color="#111827"))
-
+    def _header(self, labels):
         return ft.Container(
-            padding=ft.padding.symmetric(vertical=10),
-            content=ft.Row(controls=controls),
-        )
-
-    def _status_badge(self, status):
-        status = str(status).lower()
-
-        if "valid" in status or "confirm" in status or "restit" in status:
-            bgcolor = "#DCFCE7"
-            color = "#15803D"
-        elif "attente" in status:
-            bgcolor = "#FFEDD5"
-            color = "#EA580C"
-        else:
-            bgcolor = "#DBEAFE"
-            color = "#0B63F6"
-
-        return ft.Container(
-            padding=ft.padding.symmetric(horizontal=10, vertical=5),
-            border_radius=8,
-            bgcolor=bgcolor,
-            content=ft.Text(
-                status.capitalize() if status else "En cours",
-                size=12,
-                color=color,
-                weight=ft.FontWeight.BOLD,
-            ),
-        )
-
-    def _info_card(self):
-        return ft.Container(
-            padding=18,
+            padding=8,
             bgcolor="#EAF3FF",
-            border_radius=16,
+            border_radius=8,
             content=ft.Row(
                 controls=[
-                    ft.Container(
-                        width=45,
-                        height=45,
-                        border_radius=30,
-                        bgcolor="#0B63F6",
-                        alignment=ft.Alignment(0, 0),
-                        content=ft.Icon(ft.Icons.INFO, color=WHITE),
-                    ),
-                    ft.Column(
-                        controls=[
-                            ft.Text("Informations", size=16, weight=ft.FontWeight.BOLD),
-                            ft.Text(
-                                "Pensez à restituer vos emprunts à temps et à annuler vos réservations si vous ne pouvez plus venir.",
-                                size=13,
-                                color="#334155",
-                            ),
-                        ],
-                    ),
-                ],
-                spacing=14,
+                    ft.Text(label, expand=True, size=12, weight=ft.FontWeight.BOLD, color="#334155")
+                    for label in labels
+                ]
+            ),
+        )
+
+    def _row(self, values):
+        return ft.Container(
+            padding=8,
+            bgcolor="#F8FAFC",
+            border_radius=8,
+            content=ft.Row(
+                controls=[
+                    ft.Text(str(value), expand=True, size=13, color=DARK)
+                    for value in values
+                ]
             ),
         )
 
@@ -352,34 +198,48 @@ class DashboardView:
         try:
             if self.emprunt_service is None:
                 return []
-            if self.role == "ETUDIANT" and hasattr(self.emprunt_service, "find_by_etudiant"):
+
+            if self.role == "ETUDIANT":
                 return self.emprunt_service.find_by_etudiant(self.user.get("id"))
+
             return self.emprunt_service.get_all()
-        except Exception:
+
+        except Exception as ex:
+            print("Erreur dashboard emprunts :", ex)
             return []
 
     def _get_reservations(self):
         try:
             if self.reservation_service is None:
                 return []
-            if self.role == "ETUDIANT" and hasattr(self.reservation_service, "find_by_etudiant"):
+
+            if self.role == "ETUDIANT":
                 return self.reservation_service.find_by_etudiant(self.user.get("id"))
+
             return self.reservation_service.get_all()
-        except Exception:
+
+        except Exception as ex:
+            print("Erreur dashboard réservations :", ex)
             return []
 
     def _get_materiels(self):
         try:
             if self.stock_service is None:
                 return []
+
             return self.stock_service.consulter_inventaire()
-        except Exception:
+
+        except Exception as ex:
+            print("Erreur dashboard matériels :", ex)
             return []
 
     def _get_alertes(self):
         try:
             if self.alerte_service is None:
                 return []
+
             return self.alerte_service.get_all()
-        except Exception:
+
+        except Exception as ex:
+            print("Erreur dashboard alertes :", ex)
             return []
