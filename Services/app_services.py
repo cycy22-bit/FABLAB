@@ -37,6 +37,18 @@ def ensure_database():
         )
         """)
 
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS Alertes (
+            id_alerte INTEGER PRIMARY KEY AUTOINCREMENT,
+            type_alerte TEXT NOT NULL,
+            message_alerte TEXT NOT NULL,
+            destinataire_role TEXT NOT NULL,
+            id_destinataire INTEGER,
+            statut_alerte TEXT DEFAULT 'non lue',
+            date_alerte TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
         c.execute("SELECT COUNT(*) FROM Materiels")
         total = c.fetchone()[0]
 
@@ -55,8 +67,53 @@ def ensure_database():
                 (7, "Gants de protection", "EPI", 20, 5),
             ])
 
-        conn.commit()
+        # ==========================
+        # MIGRATIONS AUTOMATIQUES
+        # ==========================
 
+        def add_column_if_missing(table, column, definition):
+            c.execute(f"PRAGMA table_info({table})")
+            columns = [row[1] for row in c.fetchall()]
+            if column not in columns:
+                c.execute(
+                    f"ALTER TABLE {table} ADD COLUMN {column} {definition}"
+                )
+
+        # Emprunts
+        add_column_if_missing("Emprunts", "duree", "INTEGER DEFAULT 1")
+        add_column_if_missing(
+            "Emprunts",
+            "statut_emprunt",
+            "TEXT DEFAULT 'en attente'"
+        )
+
+        # Réservations
+        add_column_if_missing(
+            "Reservations",
+            "statut_reservation",
+            "TEXT DEFAULT 'en attente'"
+        )
+
+        # Alertes
+        add_column_if_missing(
+            "Alertes",
+            "destinataire_role",
+            "TEXT DEFAULT 'GESTIONNAIRE'"
+        )
+
+        add_column_if_missing(
+            "Alertes",
+            "id_destinataire",
+            "INTEGER"
+        )
+
+        add_column_if_missing(
+            "Alertes",
+            "statut_alerte",
+            "TEXT DEFAULT 'non lue'"
+        )
+
+        conn.commit()
 
 class BaseService:
     def connect(self):
@@ -65,6 +122,25 @@ class BaseService:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
+
+    def creer_alerte_interne(
+        self,
+        conn,
+        type_alerte,
+        message_alerte,
+        destinataire_role,
+        id_destinataire=None
+    ):
+        conn.execute("""
+        INSERT INTO Alertes
+        (type_alerte, message_alerte, destinataire_role, id_destinataire)
+        VALUES (?, ?, ?, ?)
+        """, (
+            type_alerte,
+            message_alerte,
+            destinataire_role,
+            id_destinataire,
+        ))
 
 
 class StockService(BaseService):
@@ -151,7 +227,9 @@ class MachineService(BaseService):
     def get_all(self):
         with self.connect() as conn:
             rows = conn.execute("""
-            SELECT * FROM Machines ORDER BY nom_machine
+            SELECT *
+            FROM Machines
+            ORDER BY nom_machine
             """).fetchall()
             return to_objects(rows)
 
@@ -164,7 +242,8 @@ class MachineService(BaseService):
             """, (nom_machine, type_machine, description, caracteristiques_techniques, emplacement))
 
             conn.execute("""
-            INSERT INTO MouvementsStock (type_mouvement, description)
+            INSERT INTO MouvementsStock
+            (type_mouvement, description)
             VALUES ('ajout_machine', ?)
             """, (f"Ajout de la machine : {nom_machine}",))
 
@@ -176,7 +255,9 @@ class FournisseurService(BaseService):
     def get_all(self):
         with self.connect() as conn:
             rows = conn.execute("""
-            SELECT * FROM Fournisseurs ORDER BY nom_fournisseur
+            SELECT *
+            FROM Fournisseurs
+            ORDER BY nom_fournisseur
             """).fetchall()
             return to_objects(rows)
 
@@ -206,7 +287,8 @@ class FournisseurService(BaseService):
             ))
 
             conn.execute("""
-            INSERT INTO MouvementsStock (type_mouvement, description)
+            INSERT INTO MouvementsStock
+            (type_mouvement, description)
             VALUES ('ajout_fournisseur', ?)
             """, (f"Ajout du fournisseur : {nom_fournisseur}",))
 
@@ -249,6 +331,14 @@ class ReservationService(BaseService):
             """, (id_machine, date_reservation, heure_debut, heure_fin)).fetchone()
 
             if conflit:
+                self.creer_alerte_interne(
+                    conn,
+                    "Réservation bloquée",
+                    "Ce créneau est déjà occupé pour cette machine.",
+                    "ETUDIANT",
+                    id_etudiant,
+                )
+                conn.commit()
                 return False
 
             conn.execute("""
@@ -258,9 +348,18 @@ class ReservationService(BaseService):
             """, (id_etudiant, id_machine, date_reservation, heure_debut, heure_fin))
 
             conn.execute("""
-            INSERT INTO MouvementsStock (type_mouvement, description)
+            INSERT INTO MouvementsStock
+            (type_mouvement, description)
             VALUES ('demande_reservation', ?)
             """, (f"Demande de réservation machine {id_machine} par étudiant {id_etudiant}",))
+
+            self.creer_alerte_interne(
+                conn,
+                "Nouvelle réservation",
+                f"Nouvelle demande de réservation de la machine {id_machine}.",
+                "GESTIONNAIRE",
+                None,
+            )
 
             conn.commit()
         return True
@@ -276,6 +375,9 @@ class ReservationService(BaseService):
             if reservation is None:
                 return False
 
+            if reservation["statut_reservation"] != "en attente":
+                return False
+
             conn.execute("""
             UPDATE Reservations
             SET statut_reservation = 'validée'
@@ -283,15 +385,36 @@ class ReservationService(BaseService):
             """, (id_reservation,))
 
             conn.execute("""
-            INSERT INTO MouvementsStock (type_mouvement, description)
+            INSERT INTO MouvementsStock
+            (type_mouvement, description)
             VALUES ('reservation_validée', ?)
             """, (f"Réservation {id_reservation} validée",))
+
+            self.creer_alerte_interne(
+                conn,
+                "Réservation acceptée",
+                f"Votre réservation n°{id_reservation} a été acceptée.",
+                "ETUDIANT",
+                reservation["id_etudiant"],
+            )
 
             conn.commit()
         return True
 
     def refuser_reservation(self, id_reservation):
         with self.connect() as conn:
+            reservation = conn.execute("""
+            SELECT *
+            FROM Reservations
+            WHERE id_reservation = ?
+            """, (id_reservation,)).fetchone()
+
+            if reservation is None:
+                return False
+
+            if reservation["statut_reservation"] != "en attente":
+                return False
+
             conn.execute("""
             UPDATE Reservations
             SET statut_reservation = 'refusée'
@@ -299,9 +422,18 @@ class ReservationService(BaseService):
             """, (id_reservation,))
 
             conn.execute("""
-            INSERT INTO MouvementsStock (type_mouvement, description)
+            INSERT INTO MouvementsStock
+            (type_mouvement, description)
             VALUES ('reservation_refusée', ?)
             """, (f"Réservation {id_reservation} refusée",))
+
+            self.creer_alerte_interne(
+                conn,
+                "Réservation refusée",
+                f"Votre réservation n°{id_reservation} a été refusée.",
+                "ETUDIANT",
+                reservation["id_etudiant"],
+            )
 
             conn.commit()
         return True
@@ -341,6 +473,14 @@ class EmpruntService(BaseService):
             """, (id_etudiant, id_materiel)).fetchone()
 
             if deja:
+                self.creer_alerte_interne(
+                    conn,
+                    "Emprunt bloqué",
+                    "Vous avez déjà un emprunt actif pour ce matériel.",
+                    "ETUDIANT",
+                    id_etudiant,
+                )
+                conn.commit()
                 return False
 
             stock = conn.execute("""
@@ -350,6 +490,14 @@ class EmpruntService(BaseService):
             """, (id_materiel,)).fetchone()
 
             if stock is None or stock["quantite_stock"] < quantite:
+                self.creer_alerte_interne(
+                    conn,
+                    "Emprunt bloqué",
+                    "Stock insuffisant pour ce matériel.",
+                    "ETUDIANT",
+                    id_etudiant,
+                )
+                conn.commit()
                 return False
 
             conn.execute("""
@@ -359,9 +507,18 @@ class EmpruntService(BaseService):
             """, (id_etudiant, id_materiel, quantite, duree))
 
             conn.execute("""
-            INSERT INTO MouvementsStock (type_mouvement, id_materiel, quantite, description)
+            INSERT INTO MouvementsStock
+            (type_mouvement, id_materiel, quantite, description)
             VALUES ('demande_emprunt', ?, ?, ?)
             """, (id_materiel, quantite, f"Demande d'emprunt de {quantite} unité(s) par étudiant {id_etudiant}"))
+
+            self.creer_alerte_interne(
+                conn,
+                "Nouvelle demande d'emprunt",
+                f"Nouvelle demande d'emprunt pour le matériel {id_materiel}.",
+                "GESTIONNAIRE",
+                None,
+            )
 
             conn.commit()
         return True
@@ -387,6 +544,14 @@ class EmpruntService(BaseService):
             """, (emprunt["id_materiel"],)).fetchone()
 
             if stock is None or stock["quantite_stock"] < emprunt["quantite"]:
+                self.creer_alerte_interne(
+                    conn,
+                    "Emprunt impossible",
+                    f"Impossible d'accepter l'emprunt n°{id_emprunt} : stock insuffisant.",
+                    "GESTIONNAIRE",
+                    None,
+                )
+                conn.commit()
                 return False
 
             conn.execute("""
@@ -402,7 +567,8 @@ class EmpruntService(BaseService):
             """, (emprunt["quantite"], emprunt["id_materiel"]))
 
             conn.execute("""
-            INSERT INTO MouvementsStock (type_mouvement, id_materiel, quantite, description)
+            INSERT INTO MouvementsStock
+            (type_mouvement, id_materiel, quantite, description)
             VALUES ('emprunt_accepté', ?, ?, ?)
             """, (
                 emprunt["id_materiel"],
@@ -410,11 +576,31 @@ class EmpruntService(BaseService):
                 f"Emprunt {id_emprunt} accepté et stock diminué",
             ))
 
+            self.creer_alerte_interne(
+                conn,
+                "Emprunt accepté",
+                f"Votre demande d'emprunt n°{id_emprunt} a été acceptée.",
+                "ETUDIANT",
+                emprunt["id_etudiant"],
+            )
+
             conn.commit()
         return True
 
     def refuser_emprunt(self, id_emprunt):
         with self.connect() as conn:
+            emprunt = conn.execute("""
+            SELECT *
+            FROM Emprunts
+            WHERE id_emprunt = ?
+            """, (id_emprunt,)).fetchone()
+
+            if emprunt is None:
+                return False
+
+            if emprunt["statut_emprunt"] != "en attente":
+                return False
+
             conn.execute("""
             UPDATE Emprunts
             SET statut_emprunt = 'refusé'
@@ -422,9 +608,18 @@ class EmpruntService(BaseService):
             """, (id_emprunt,))
 
             conn.execute("""
-            INSERT INTO MouvementsStock (type_mouvement, description)
+            INSERT INTO MouvementsStock
+            (type_mouvement, description)
             VALUES ('emprunt_refusé', ?)
             """, (f"Emprunt {id_emprunt} refusé",))
+
+            self.creer_alerte_interne(
+                conn,
+                "Emprunt refusé",
+                f"Votre demande d'emprunt n°{id_emprunt} a été refusée.",
+                "ETUDIANT",
+                emprunt["id_etudiant"],
+            )
 
             conn.commit()
         return True
@@ -451,9 +646,18 @@ class CommandeService(BaseService):
             """, (id_fournisseur, id_gestionnaire, date_commande, date_livraison_prevue, montant_total))
 
             conn.execute("""
-            INSERT INTO MouvementsStock (type_mouvement, description)
+            INSERT INTO MouvementsStock
+            (type_mouvement, description)
             VALUES ('commande', ?)
             """, (f"Commande créée chez fournisseur {id_fournisseur}",))
+
+            self.creer_alerte_interne(
+                conn,
+                "Commande créée",
+                f"Une commande a été créée chez le fournisseur {id_fournisseur}.",
+                "GESTIONNAIRE",
+                None,
+            )
 
             conn.commit()
         return True
@@ -463,23 +667,104 @@ class HistoriqueService(BaseService):
     def get_all(self):
         with self.connect() as conn:
             rows = conn.execute("""
-            SELECT * FROM MouvementsStock
+            SELECT *
+            FROM MouvementsStock
             ORDER BY id_mouvement DESC
             """).fetchall()
             return to_objects(rows)
 
 
 class AlerteService(BaseService):
+    def creer_alerte(self, type_alerte, message_alerte, destinataire_role, id_destinataire=None):
+        with self.connect() as conn:
+            self.creer_alerte_interne(
+                conn,
+                type_alerte,
+                message_alerte,
+                destinataire_role,
+                id_destinataire,
+            )
+            conn.commit()
+        return True
+
     def get_all(self):
         with self.connect() as conn:
             rows = conn.execute("""
             SELECT
+                id_alerte,
+                type_alerte,
+                message_alerte,
+                destinataire_role,
+                id_destinataire,
+                statut_alerte,
+                date_alerte
+            FROM Alertes
+
+            UNION ALL
+
+            SELECT
                 id_materiel AS id_alerte,
                 'Stock faible' AS type_alerte,
                 'Stock faible pour : ' || nom_materiel AS message_alerte,
+                'GESTIONNAIRE' AS destinataire_role,
+                NULL AS id_destinataire,
+                'non lue' AS statut_alerte,
                 CURRENT_TIMESTAMP AS date_alerte
-                                
             FROM Materiels
             WHERE quantite_stock < stock_minimum
+
+            ORDER BY date_alerte DESC
             """).fetchall()
+
+            return to_objects(rows)
+
+    def find_by_etudiant(self, id_etudiant):
+        with self.connect() as conn:
+            rows = conn.execute("""
+            SELECT
+                id_alerte,
+                type_alerte,
+                message_alerte,
+                destinataire_role,
+                id_destinataire,
+                statut_alerte,
+                date_alerte
+            FROM Alertes
+            WHERE destinataire_role = 'ETUDIANT'
+            AND id_destinataire = ?
+            ORDER BY date_alerte DESC
+            """, (id_etudiant,)).fetchall()
+
+            return to_objects(rows)
+
+    def find_by_gestionnaire(self):
+        with self.connect() as conn:
+            rows = conn.execute("""
+            SELECT
+                id_alerte,
+                type_alerte,
+                message_alerte,
+                destinataire_role,
+                id_destinataire,
+                statut_alerte,
+                date_alerte
+            FROM Alertes
+            WHERE destinataire_role = 'GESTIONNAIRE'
+
+            UNION ALL
+
+            SELECT
+                id_materiel AS id_alerte,
+                'Stock faible' AS type_alerte,
+                'Stock faible pour : ' || nom_materiel AS message_alerte,
+                'GESTIONNAIRE' AS destinataire_role,
+                NULL AS id_destinataire,
+                'non lue' AS statut_alerte,
+                CURRENT_TIMESTAMP AS date_alerte
+            FROM Materiels
+            WHERE quantite_stock < stock_minimum
+
+            ORDER BY date_alerte DESC
+            """).fetchall()
+
             return to_objects(rows)
