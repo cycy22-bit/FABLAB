@@ -9,7 +9,6 @@ class EmpruntView:
         self.user = user
         self.role = self.user.get("role", "").upper()
 
-        self.id_etudiant_field = input_field("ID étudiant")
         self.id_materiel_field = input_field("ID matériel")
         self.quantite_field = input_field("Quantité")
         self.duree_field = input_field("Durée d'emprunt en jours")
@@ -21,6 +20,7 @@ class EmpruntView:
                 ft.DataColumn(ft.Text("Matériel")),
                 ft.DataColumn(ft.Text("Quantité")),
                 ft.DataColumn(ft.Text("Statut")),
+                ft.DataColumn(ft.Text("Actions")),
             ],
             rows=[],
         )
@@ -30,13 +30,12 @@ class EmpruntView:
 
         controls = [
             title_text(
-                "Liste des emprunts"
+                "Demandes d'emprunt"
                 if self.role == "GESTIONNAIRE"
                 else "Mes emprunts"
             )
         ]
 
-        # Le formulaire n'est visible que pour l'étudiant
         if self.role == "ETUDIANT":
             controls.append(
                 card(
@@ -89,28 +88,67 @@ class EmpruntView:
                 emprunts = self.emprunt_service.get_all()
 
             for emprunt in emprunts:
-                self.table.rows.append(
-                    ft.DataRow(
-                        cells=[
-                            ft.DataCell(ft.Text(str(getattr(emprunt, "id_emprunt", "")))),
-                            ft.DataCell(ft.Text(str(getattr(emprunt, "id_etudiant", "")))),
-                            ft.DataCell(ft.Text(str(getattr(emprunt, "id_materiel", "")))),
-                            ft.DataCell(ft.Text(str(getattr(emprunt, "quantite", "")))),
-                            ft.DataCell(ft.Text(str(getattr(emprunt, "statut_emprunt", "")))),
-                        ]
+                statut = str(getattr(emprunt, "statut_emprunt", ""))
+
+                cells = [
+                    ft.DataCell(ft.Text(str(getattr(emprunt, "id_emprunt", "")))),
+                    ft.DataCell(
+                        ft.Text(
+                            str(
+                                getattr(
+                                    emprunt,
+                                    "nom_etudiant",
+                                    getattr(emprunt, "id_etudiant", ""),
+                                )
+                            )
+                        )
+                    ),
+                    ft.DataCell(
+                        ft.Text(
+                            str(
+                                getattr(
+                                    emprunt,
+                                    "nom_materiel",
+                                    getattr(emprunt, "id_materiel", ""),
+                                )
+                            )
+                        )
+                    ),
+                    ft.DataCell(ft.Text(str(getattr(emprunt, "quantite", "")))),
+                    ft.DataCell(ft.Text(statut)),
+                ]
+
+                if self.role == "GESTIONNAIRE" and statut == "en attente":
+                    id_emprunt = getattr(emprunt, "id_emprunt", None)
+
+                    cells.append(
+                        ft.DataCell(
+                            ft.Row(
+                                controls=[
+                                    ft.TextButton(
+                                        "Accepter",
+                                        on_click=lambda e, eid=id_emprunt: self.on_accepter_clicked(eid),
+                                    ),
+                                    ft.TextButton(
+                                        "Refuser",
+                                        on_click=lambda e, eid=id_emprunt: self.on_refuser_clicked(eid),
+                                    ),
+                                ],
+                                spacing=5,
+                            )
+                        )
                     )
-                )
+                else:
+                    cells.append(ft.DataCell(ft.Text("-")))
+
+                self.table.rows.append(ft.DataRow(cells=cells))
 
         except Exception as ex:
             notify(self.page, f"Erreur de chargement des emprunts : {ex}", False)
 
     def on_emprunter_clicked(self, e):
         try:
-            if self.role == "ETUDIANT":
-                id_etudiant = int(self.user.get("id"))
-            else:
-                id_etudiant = int(self.id_etudiant_field.value)
-
+            id_etudiant = int(self.user.get("id"))
             id_materiel = int(self.id_materiel_field.value)
             quantite = int(self.quantite_field.value)
             duree = int(self.duree_field.value)
@@ -131,13 +169,41 @@ class EmpruntView:
             )
 
             if result:
-                notify(self.page, "Demande d'emprunt enregistrée.", success=True)
+                notify(self.page, "Demande d'emprunt enregistrée. En attente de validation.", True)
                 self.refresh_table()
                 self.page.update()
             else:
-                notify(self.page, "Demande refusée.", success=False)
+                notify(self.page, "Demande refusée : matériel indisponible ou déjà emprunté.", False)
 
         except ValueError:
-            notify(self.page, "Tous les champs numériques doivent être valides.", success=False)
+            notify(self.page, "Tous les champs numériques doivent être valides.", False)
         except Exception as ex:
-            notify(self.page, f"Erreur : {ex}", success=False)
+            notify(self.page, f"Erreur : {ex}", False)
+
+    def on_accepter_clicked(self, id_emprunt):
+        try:
+            result = self.emprunt_service.accepter_emprunt(id_emprunt)
+
+            if result:
+                notify(self.page, "Emprunt accepté. Le stock a été mis à jour.", True)
+                self.refresh_table()
+                self.page.update()
+            else:
+                notify(self.page, "Impossible d'accepter cet emprunt.", False)
+
+        except Exception as ex:
+            notify(self.page, f"Erreur : {ex}", False)
+
+    def on_refuser_clicked(self, id_emprunt):
+        try:
+            result = self.emprunt_service.refuser_emprunt(id_emprunt)
+
+            if result:
+                notify(self.page, "Emprunt refusé.", True)
+                self.refresh_table()
+                self.page.update()
+            else:
+                notify(self.page, "Impossible de refuser cet emprunt.", False)
+
+        except Exception as ex:
+            notify(self.page, f"Erreur : {ex}", False)

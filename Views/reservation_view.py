@@ -9,7 +9,6 @@ class ReservationView:
         self.user = user
         self.role = self.user.get("role", "").upper()
 
-        self.id_etudiant_field = input_field("ID étudiant")
         self.id_machine_field = input_field("ID machine")
         self.date_field = input_field("Date réservation : AAAA-MM-JJ")
         self.heure_debut_field = input_field("Heure début : HH:MM")
@@ -24,6 +23,7 @@ class ReservationView:
                 ft.DataColumn(ft.Text("Début")),
                 ft.DataColumn(ft.Text("Fin")),
                 ft.DataColumn(ft.Text("Statut")),
+                ft.DataColumn(ft.Text("Actions")),
             ],
             rows=[],
         )
@@ -33,13 +33,12 @@ class ReservationView:
 
         controls = [
             title_text(
-                "Liste des réservations"
+                "Demandes de réservation"
                 if self.role == "GESTIONNAIRE"
                 else "Mes réservations"
             )
         ]
 
-        # Le formulaire n'est visible que pour l'étudiant
         if self.role == "ETUDIANT":
             controls.append(
                 card(
@@ -93,28 +92,69 @@ class ReservationView:
                 reservations = self.reservation_service.get_all()
 
             for reservation in reservations:
-                self.table.rows.append(
-                    ft.DataRow(
-                        cells=[
-                            ft.DataCell(ft.Text(str(getattr(reservation, "id_reservation", "")))),
-                            ft.DataCell(ft.Text(str(getattr(reservation, "id_etudiant", "")))),
-                            ft.DataCell(ft.Text(str(getattr(reservation, "id_machine", "")))),
-                            ft.DataCell(ft.Text(str(getattr(reservation, "date_reservation", "")))),
-                            ft.DataCell(ft.Text(str(getattr(reservation, "heure_debut", "")))),
-                            ft.DataCell(ft.Text(str(getattr(reservation, "heure_fin", "")))),
-                            ft.DataCell(ft.Text(str(getattr(reservation, "statut_reservation", "")))),
-                        ]
+                statut = str(getattr(reservation, "statut_reservation", ""))
+
+                cells = [
+                    ft.DataCell(ft.Text(str(getattr(reservation, "id_reservation", "")))),
+                    ft.DataCell(
+                        ft.Text(
+                            str(
+                                getattr(
+                                    reservation,
+                                    "nom_etudiant",
+                                    getattr(reservation, "id_etudiant", ""),
+                                )
+                            )
+                        )
+                    ),
+                    ft.DataCell(
+                        ft.Text(
+                            str(
+                                getattr(
+                                    reservation,
+                                    "nom_machine",
+                                    getattr(reservation, "id_machine", ""),
+                                )
+                            )
+                        )
+                    ),
+                    ft.DataCell(ft.Text(str(getattr(reservation, "date_reservation", "")))),
+                    ft.DataCell(ft.Text(str(getattr(reservation, "heure_debut", "")))),
+                    ft.DataCell(ft.Text(str(getattr(reservation, "heure_fin", "")))),
+                    ft.DataCell(ft.Text(statut)),
+                ]
+
+                if self.role == "GESTIONNAIRE" and statut == "en attente":
+                    id_reservation = getattr(reservation, "id_reservation", None)
+
+                    cells.append(
+                        ft.DataCell(
+                            ft.Row(
+                                controls=[
+                                    ft.TextButton(
+                                        "Accepter",
+                                        on_click=lambda e, rid=id_reservation: self.on_accepter_clicked(rid),
+                                    ),
+                                    ft.TextButton(
+                                        "Refuser",
+                                        on_click=lambda e, rid=id_reservation: self.on_refuser_clicked(rid),
+                                    ),
+                                ],
+                                spacing=5,
+                            )
+                        )
                     )
-                )
+                else:
+                    cells.append(ft.DataCell(ft.Text("-")))
+
+                self.table.rows.append(ft.DataRow(cells=cells))
+
         except Exception as ex:
             notify(self.page, f"Erreur de chargement des réservations : {ex}", False)
 
     def on_reserver_clicked(self, e):
         try:
-            if self.role == "ETUDIANT":
-                id_etudiant = int(self.user.get("id"))
-            else:
-                id_etudiant = int(self.id_etudiant_field.value)
+            id_etudiant = int(self.user.get("id"))
 
             result = self.reservation_service.reserver_machine(
                 id_etudiant=id_etudiant,
@@ -125,13 +165,41 @@ class ReservationView:
             )
 
             if result:
-                notify(self.page, "Réservation enregistrée.", True)
+                notify(self.page, "Réservation enregistrée. En attente de validation.", True)
                 self.refresh_table()
                 self.page.update()
             else:
-                notify(self.page, "Réservation refusée.", False)
+                notify(self.page, "Réservation refusée : créneau déjà occupé.", False)
 
         except ValueError:
             notify(self.page, "Les ID doivent être numériques.", False)
+        except Exception as ex:
+            notify(self.page, f"Erreur : {ex}", False)
+
+    def on_accepter_clicked(self, id_reservation):
+        try:
+            result = self.reservation_service.accepter_reservation(id_reservation)
+
+            if result:
+                notify(self.page, "Réservation acceptée.", True)
+                self.refresh_table()
+                self.page.update()
+            else:
+                notify(self.page, "Impossible d'accepter cette réservation.", False)
+
+        except Exception as ex:
+            notify(self.page, f"Erreur : {ex}", False)
+
+    def on_refuser_clicked(self, id_reservation):
+        try:
+            result = self.reservation_service.refuser_reservation(id_reservation)
+
+            if result:
+                notify(self.page, "Réservation refusée.", True)
+                self.refresh_table()
+                self.page.update()
+            else:
+                notify(self.page, "Impossible de refuser cette réservation.", False)
+
         except Exception as ex:
             notify(self.page, f"Erreur : {ex}", False)
