@@ -240,7 +240,8 @@ class ReservationService(BaseService):
     def reserver_machine(self, id_etudiant, id_machine, date_reservation, heure_debut, heure_fin):
         with self.connect() as conn:
             conflit = conn.execute("""
-            SELECT id_reservation FROM Reservations
+            SELECT id_reservation
+            FROM Reservations
             WHERE id_machine = ?
             AND date_reservation = ?
             AND statut_reservation IN ('en attente', 'validée')
@@ -252,14 +253,55 @@ class ReservationService(BaseService):
 
             conn.execute("""
             INSERT INTO Reservations
-            (id_etudiant, id_machine, date_reservation, heure_debut, heure_fin)
-            VALUES (?, ?, ?, ?, ?)
+            (id_etudiant, id_machine, date_reservation, heure_debut, heure_fin, statut_reservation)
+            VALUES (?, ?, ?, ?, ?, 'en attente')
             """, (id_etudiant, id_machine, date_reservation, heure_debut, heure_fin))
 
             conn.execute("""
             INSERT INTO MouvementsStock (type_mouvement, description)
-            VALUES ('reservation', ?)
-            """, (f"Réservation machine {id_machine} par étudiant {id_etudiant}",))
+            VALUES ('demande_reservation', ?)
+            """, (f"Demande de réservation machine {id_machine} par étudiant {id_etudiant}",))
+
+            conn.commit()
+        return True
+
+    def accepter_reservation(self, id_reservation):
+        with self.connect() as conn:
+            reservation = conn.execute("""
+            SELECT *
+            FROM Reservations
+            WHERE id_reservation = ?
+            """, (id_reservation,)).fetchone()
+
+            if reservation is None:
+                return False
+
+            conn.execute("""
+            UPDATE Reservations
+            SET statut_reservation = 'validée'
+            WHERE id_reservation = ?
+            """, (id_reservation,))
+
+            conn.execute("""
+            INSERT INTO MouvementsStock (type_mouvement, description)
+            VALUES ('reservation_validée', ?)
+            """, (f"Réservation {id_reservation} validée",))
+
+            conn.commit()
+        return True
+
+    def refuser_reservation(self, id_reservation):
+        with self.connect() as conn:
+            conn.execute("""
+            UPDATE Reservations
+            SET statut_reservation = 'refusée'
+            WHERE id_reservation = ?
+            """, (id_reservation,))
+
+            conn.execute("""
+            INSERT INTO MouvementsStock (type_mouvement, description)
+            VALUES ('reservation_refusée', ?)
+            """, (f"Réservation {id_reservation} refusée",))
 
             conn.commit()
         return True
@@ -291,7 +333,8 @@ class EmpruntService(BaseService):
     def emprunter_materiel(self, id_etudiant, id_materiel, quantite, duree):
         with self.connect() as conn:
             deja = conn.execute("""
-            SELECT id_emprunt FROM Emprunts
+            SELECT id_emprunt
+            FROM Emprunts
             WHERE id_etudiant = ?
             AND id_materiel = ?
             AND statut_emprunt IN ('en attente', 'accepté', 'en cours')
@@ -301,7 +344,9 @@ class EmpruntService(BaseService):
                 return False
 
             stock = conn.execute("""
-            SELECT quantite_stock FROM Materiels WHERE id_materiel = ?
+            SELECT quantite_stock
+            FROM Materiels
+            WHERE id_materiel = ?
             """, (id_materiel,)).fetchone()
 
             if stock is None or stock["quantite_stock"] < quantite:
@@ -309,20 +354,77 @@ class EmpruntService(BaseService):
 
             conn.execute("""
             INSERT INTO Emprunts
-            (id_etudiant, id_materiel, quantite, duree)
-            VALUES (?, ?, ?, ?)
+            (id_etudiant, id_materiel, quantite, duree, statut_emprunt)
+            VALUES (?, ?, ?, ?, 'en attente')
             """, (id_etudiant, id_materiel, quantite, duree))
+
+            conn.execute("""
+            INSERT INTO MouvementsStock (type_mouvement, id_materiel, quantite, description)
+            VALUES ('demande_emprunt', ?, ?, ?)
+            """, (id_materiel, quantite, f"Demande d'emprunt de {quantite} unité(s) par étudiant {id_etudiant}"))
+
+            conn.commit()
+        return True
+
+    def accepter_emprunt(self, id_emprunt):
+        with self.connect() as conn:
+            emprunt = conn.execute("""
+            SELECT *
+            FROM Emprunts
+            WHERE id_emprunt = ?
+            """, (id_emprunt,)).fetchone()
+
+            if emprunt is None:
+                return False
+
+            if emprunt["statut_emprunt"] != "en attente":
+                return False
+
+            stock = conn.execute("""
+            SELECT quantite_stock
+            FROM Materiels
+            WHERE id_materiel = ?
+            """, (emprunt["id_materiel"],)).fetchone()
+
+            if stock is None or stock["quantite_stock"] < emprunt["quantite"]:
+                return False
+
+            conn.execute("""
+            UPDATE Emprunts
+            SET statut_emprunt = 'accepté'
+            WHERE id_emprunt = ?
+            """, (id_emprunt,))
 
             conn.execute("""
             UPDATE Materiels
             SET quantite_stock = quantite_stock - ?
             WHERE id_materiel = ?
-            """, (quantite, id_materiel))
+            """, (emprunt["quantite"], emprunt["id_materiel"]))
 
             conn.execute("""
             INSERT INTO MouvementsStock (type_mouvement, id_materiel, quantite, description)
-            VALUES ('emprunt', ?, ?, ?)
-            """, (id_materiel, quantite, f"Emprunt de {quantite} unité(s) par étudiant {id_etudiant}"))
+            VALUES ('emprunt_accepté', ?, ?, ?)
+            """, (
+                emprunt["id_materiel"],
+                emprunt["quantite"],
+                f"Emprunt {id_emprunt} accepté et stock diminué",
+            ))
+
+            conn.commit()
+        return True
+
+    def refuser_emprunt(self, id_emprunt):
+        with self.connect() as conn:
+            conn.execute("""
+            UPDATE Emprunts
+            SET statut_emprunt = 'refusé'
+            WHERE id_emprunt = ?
+            """, (id_emprunt,))
+
+            conn.execute("""
+            INSERT INTO MouvementsStock (type_mouvement, description)
+            VALUES ('emprunt_refusé', ?)
+            """, (f"Emprunt {id_emprunt} refusé",))
 
             conn.commit()
         return True
