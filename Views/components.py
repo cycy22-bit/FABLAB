@@ -86,15 +86,14 @@ def card(content: ft.Control, width=None, height=None) -> ft.Container:
     )
 
 
-def logo_ulc_icam(size: int = 42) -> ft.Control:
-    logo_path = Path("Assets/logo_ulc_icam.png")
+def logo_ulc_icam(size: int = 60) -> ft.Control:
+    logo_path = Path("Assets/logo.png")
 
     if logo_path.exists():
         return ft.Image(
             src=str(logo_path),
             width=size,
             height=size,
-            fit=ft.ImageFit.CONTAIN,
         )
 
     return ft.Container(
@@ -104,8 +103,8 @@ def logo_ulc_icam(size: int = 42) -> ft.Control:
         bgcolor=PRIMARY_COLOR,
         alignment=ft.Alignment(0, 0),
         content=ft.Text(
-            "ULC\nICAM",
-            size=9,
+            "SG\nFAB",
+            size=10,
             color=WHITE,
             weight=ft.FontWeight.BOLD,
             text_align=ft.TextAlign.CENTER,

@@ -1,5 +1,13 @@
 import flet as ft
-from .components import title_text, subtitle_text, input_field, primary_button, card, notify, logo_ulc_icam
+from .components import (
+    title_text,
+    subtitle_text,
+    input_field,
+    primary_button,
+    card,
+    notify,
+    logo_ulc_icam,
+)
 
 
 class LoginView:
@@ -19,7 +27,7 @@ class LoginView:
             content=card(
                 ft.Column(
                     controls=[
-                        logo_ulc_icam(58),
+                        logo_ulc_icam(120),
                         title_text("SG-FabLab"),
                         subtitle_text("Connexion au système de gestion du FabLab"),
                         self.email_field,

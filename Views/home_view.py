@@ -115,10 +115,15 @@ class MainScreen:
                 controls=[
                     ft.Row(
                         controls=[
-                            logo_ulc_icam(42),
+                            logo_ulc_icam(58),
                             ft.Column(
                                 controls=[
-                                    ft.Text("SG-FabLab", size=22, weight=ft.FontWeight.BOLD, color=PRIMARY_COLOR),
+                                    ft.Text(
+                                        "SG-FabLab",
+                                        size=22,
+                                        weight=ft.FontWeight.BOLD,
+                                        color=PRIMARY_COLOR,
+                                    ),
                                     ft.Text("ULC-ICAM", size=11, color="white"),
                                 ],
                                 spacing=0,
